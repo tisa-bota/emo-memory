@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMO MEMORY</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e8883a">
+<link rel="apple-touch-icon" href="images/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f4ef;
+  --paper: #fdfbf8;
+  --text: #2e2820;
+  --text-mid: #6b5f52;
+  --text-light: #a99880;
+  --border: #e5ddd3;
+  --shadow: rgba(80,55,30,0.09);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  background-image: url('images/emomemory_bg.png'),
+    radial-gradient(ellipse at 10% 10%, rgba(232,136,58,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 90%, rgba(106,148,194,0.07) 0%, transparent 55%);
+  background-size: cover, auto, auto;
+  background-position: center, 0 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-attachment: fixed, fixed, fixed;
+}
+
+header {
+  max-width: 480px; margin: 0 auto;
+  padding: 18px 20px 4px;
+  display: flex; align-items: center; justify-content: center;
+}
+.logo { font-family: 'Noto Sans JP', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 0.18em; }
+.logo em { font-style: normal; color: #e8883a; }
+
+/* ── Bottom Nav ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  display: flex; justify-content: center;
+  pointer-events: none;
+}
+.nav-inner {
+  max-width: 360px; width: 88%;
+  background: var(--paper);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -4px 24px rgba(80,55,30,0.13);
+  display: flex; align-items: stretch;
+  pointer-events: all;
+  overflow: hidden;
+  border-top: 1.5px solid var(--border);
+}
+.nav-btn {
+  flex: 1; border: none; background: none; cursor: pointer;
+  font-family: inherit; padding: 10px 6px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: all .2s; position: relative;
+}
+.nav-btn .nb-icon { font-size: 18px; line-height: 1; transition: transform .2s; }
+.nav-btn .nb-lbl { font-size: 9px; font-weight: 500; color: var(--text-light); letter-spacing: 0.08em; transition: color .2s; }
+.nav-btn::after {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 0; height: 3px; background: #e8883a; border-radius: 0 0 4px 4px;
+  transition: width .3s cubic-bezier(.34,1.56,.64,1);
+}
+.nav-btn.on .nb-icon { transform: translateY(-2px); }
+.nav-btn.on .nb-lbl { color: #e8883a; font-weight: 700; }
+.nav-btn.on::after { width: 28px; }
+.nav-sep { width: 1px; background: var(--border); margin: 10px 0; flex-shrink: 0; }
+
+/* ── Date Picker row ── */
+.date-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--paper); border-radius: 14px; padding: 9px 12px;
+  box-shadow: 0 2px 8px var(--shadow); margin-bottom: 10px;
+}
+.d-label { font-size: 10px; color: var(--text-light); letter-spacing: 0.08em; flex-shrink: 0; }
+.date-input {
+  flex: 1; min-width: 0; border: none; background: none; font-family: 'Shippori Mincho', serif;
+  font-size: 13px; color: var(--text); outline: none; cursor: pointer; letter-spacing: 0.02em;
+}
+.date-input::-webkit-inner-spin-button,
+.date-input::-webkit-calendar-picker-indicator { opacity: 0; }
+.cal-btn {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px;
+  width: 30px; height: 30px; cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: all .2s; position: relative; overflow: hidden;
+}
+.cal-btn:hover { background: #fff4e8; border-color: #e8883a; }
+.cal-btn input[type="date"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.time-input {
+  border: none; background: none; font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px; color: var(--text-mid); outline: none; width: 60px;
+  text-align: right; cursor: pointer; flex-shrink: 0;
+}
+
+.wrap { max-width: 480px; margin: 0 auto; padding: 14px 16px 88px; }
+.screen { display: none; }
+.screen.on { display: block; }
+
+.dateline { text-align: center; font-size: 11px; color: var(--text-light); margin-bottom: 14px; letter-spacing: 0.08em; }
+
+.two-col-picker {
+  display: flex; gap: 0; margin-bottom: 10px;
+  background: var(--paper); border-radius: 18px;
+  box-shadow: 0 2px 10px var(--shadow); overflow: hidden;
+}
+.picker-group { flex: 1; padding: 12px 10px; }
+.picker-group:first-child { flex: 3; }
+.picker-group:last-child  { flex: 2; }
+.picker-divider { width: 1px; background: var(--border); margin: 12px 0; }
+.group-label {
+  font-size: 9px; letter-spacing: 0.18em; color: var(--text-light);
+  font-weight: 600; text-align: center; margin-bottom: 8px;
+}
+.emo-grid.r3 { grid-template-columns: repeat(3,1fr); }
+.emo-grid.r2 { grid-template-columns: repeat(2,1fr); }
+.emo-grid { display: grid; gap: 5px; }
+.emo-grid.r5 { grid-template-columns: repeat(5,1fr); }
+
+
+.eb {
+  border: 1.5px solid var(--border); background: var(--paper);
+  border-radius: 14px; padding: 9px 4px 7px; cursor: pointer; text-align: center;
+  transition: all .18s; font-family: inherit;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.eb:hover { transform: translateY(-2px); box-shadow: 0 5px 14px var(--shadow); }
+.eb.on { transform: translateY(-2px); box-shadow: 0 5px 14px var(--shadow); }
+.eb[data-e="嬉しい"].on .lbl { color:#f0b830; }
+.eb[data-e="悲しい"].on .lbl { color:#6098d8; }
+.eb[data-e="怒り"].on   .lbl { color:#e05858; }
+.eb[data-e="驚き"].on   .lbl { color:#f09040; }
+.eb[data-e="不安"].on   .lbl { color:#9070d0; }
+.eb[data-e="感動"].on   .lbl { color:#f070a8; }
+.eb[data-e="好き"].on   .lbl { color:#90c840; }
+.eb[data-e="苦手"].on   .lbl { color:#50a860; }
+.eb[data-e="願望"].on   .lbl { color:#e8d870; }
+.eb[data-e="その他"].on .lbl { color:#60b8d8; }
+.eb .sym { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+.eb .lbl { font-size: 10px; font-weight: 500; color: var(--text-mid); }
+.sym-dot { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sym-dot svg, .eb .sym svg { display: block; }
+
+.eb[data-e="嬉しい"].on { background:#fffaee; border-color:#f0b830; }
+.eb[data-e="悲しい"].on { background:#eef3fb; border-color:#6098d8; }
+.eb[data-e="怒り"].on   { background:#fdf2f2; border-color:#e05858; }
+.eb[data-e="驚き"].on   { background:#fff6ee; border-color:#f09040; }
+.eb[data-e="不安"].on   { background:#f5f0fc; border-color:#9070d0; }
+.eb[data-e="感動"].on   { background:#fdf0f7; border-color:#f070a8; }
+.eb[data-e="好き"].on   { background:#f4fbee; border-color:#90c840; }
+.eb[data-e="苦手"].on   { background:#eef8f0; border-color:#50a860; }
+.eb[data-e="願望"].on   { background:#fdfbee; border-color:#e8d870; }
+.eb[data-e="その他"].on { background:#eef7fb; border-color:#60b8d8; }
+
+.intensity-wrap {
+  background: var(--paper); border-radius: 18px; padding: 14px 16px;
+  box-shadow: 0 2px 10px var(--shadow); margin-bottom: 10px;
+}
+.intensity-label { font-size: 11px; color: var(--text-light); margin-bottom: 10px; }
+.stars { display: flex; gap: 10px; justify-content: center; }
+.star-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 28px; line-height: 1; padding: 0; transition: transform .15s;
+  color: #ddd;
+}
+.star-btn:hover { transform: scale(1.2); }
+.star-btn.lit { color: #c49a3c; }
+
+.card {
+  background: var(--paper); border-radius: 18px; padding: 14px 16px;
+  box-shadow: 0 2px 10px var(--shadow); margin-bottom: 10px;
+}
+.card label { display: block; font-size: 11px; color: var(--text-light); margin-bottom: 7px; letter-spacing: 0.06em; }
+textarea {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 12px;
+  font-family: inherit; font-size: 13px; color: var(--text); background: var(--bg);
+  resize: none; outline: none; line-height: 1.7; transition: border-color .2s;
+}
+textarea:focus { border-color: #e8883a; }
+textarea::placeholder { color: #c8baaa; }
+
+.photo-zone {
+  border: 2px dashed var(--border); border-radius: 14px; padding: 16px;
+  text-align: center; cursor: pointer; transition: all .2s;
+  position: relative; overflow: hidden; background: var(--bg);
+}
+.photo-zone:hover { border-color: #e8883a; background: #fff9f3; }
+.photo-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.photo-zone .ph-icon { font-size: 22px; margin-bottom: 4px; }
+.photo-zone .ph-hint { font-size: 11px; color: var(--text-light); }
+#photo-preview { width: 100%; max-height: 150px; object-fit: cover; border-radius: 10px; display: none; }
+
+.save-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #e8883a, #d4855c);
+  color: white; border: none; border-radius: 16px;
+  font-family: 'Shippori Mincho', serif; font-size: 16px; cursor: pointer;
+  letter-spacing: 0.15em; box-shadow: 0 4px 18px rgba(232,136,58,.3); transition: all .2s;
+}
+.save-btn:hover { transform: translateY(-2px); box-shadow: 0 7px 22px rgba(232,136,58,.38); }
+
+.filter-row { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; margin-bottom: 12px; align-items: center; }
+.filter-grp-lbl { font-size: 9px; letter-spacing: 0.12em; color: var(--text-light); font-weight: 600; margin-left: 4px; flex-basis: 100%; margin-top: 2px; }
+.chip {
+  flex-shrink: 0; padding: 5px 13px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: var(--paper); font-family: inherit; font-size: 11px; cursor: pointer;
+  color: var(--text-light); transition: all .18s; white-space: nowrap;
+}
+.chip.on { background: #f0ece6; color: var(--text-mid); border-color: var(--text-mid); }
+.chip[data-f="嬉しい"].on { background:#fffaee; color:#f0b830; border-color:#f0b830; }
+.chip[data-f="悲しい"].on { background:#eef3fb; color:#6098d8; border-color:#6098d8; }
+.chip[data-f="怒り"].on   { background:#fdf2f2; color:#e05858; border-color:#e05858; }
+.chip[data-f="驚き"].on   { background:#fff6ee; color:#f09040; border-color:#f09040; }
+.chip[data-f="不安"].on   { background:#f5f0fc; color:#9070d0; border-color:#9070d0; }
+.chip[data-f="感動"].on   { background:#fdf0f7; color:#f070a8; border-color:#f070a8; }
+.chip[data-f="好き"].on   { background:#f4fbee; color:#90c840; border-color:#90c840; }
+.chip[data-f="苦手"].on   { background:#eef8f0; color:#50a860; border-color:#50a860; }
+.chip[data-f="願望"].on   { background:#fdfbee; color:#c8b830; border-color:#c8b830; }
+.chip[data-f="その他"].on { background:#eef7fb; color:#60b8d8; border-color:#60b8d8; }
+
+.ecard {
+  background: var(--paper); border-radius: 18px; padding: 13px 14px; margin-bottom: 9px;
+  box-shadow: 0 2px 10px var(--shadow); border-left: 4px solid var(--border);
+  cursor: pointer; transition: all .18s; animation: fadeUp .3s ease;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.ecard:hover { transform: translateY(-2px); box-shadow: 0 6px 18px var(--shadow); }
+.ecard-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.ecard-sym { font-size: 18px; line-height: 1; }
+.ecard-name { font-size: 12px; font-weight: 700; }
+.ecard-stars { font-size: 11px; margin-left: 2px; }
+.ecard-date { font-size: 10px; color: var(--text-light); margin-left: auto; }
+.ecard-text {
+  font-size: 13px; line-height: 1.65; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ecard-thumb { width: 100%; max-height: 90px; object-fit: cover; border-radius: 8px; margin-top: 7px; }
+
+.empty { text-align: center; padding: 44px 20px; color: var(--text-light); }
+.empty .big { font-size: 44px; margin-bottom: 10px; }
+.empty p { font-size: 13px; line-height: 1.8; }
+
+.sc { background: var(--paper); border-radius: 20px; padding: 16px 18px; box-shadow: 0 2px 10px var(--shadow); margin-bottom: 12px; }
+.sc-title { font-family: 'Shippori Mincho', serif; font-size: 13px; color: var(--text-mid); margin-bottom: 13px; letter-spacing: 0.08em; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kpi { background: var(--bg); border-radius: 13px; padding: 12px; text-align: center; }
+.kpi-n { font-family: 'Shippori Mincho', serif; font-size: 28px; line-height: 1; }
+.kpi-s { font-size: 10px; color: var(--text-light); margin-top: 2px; }
+.bar-chart { display: flex; flex-direction: column; gap: 7px; }
+.br { display: flex; align-items: center; gap: 7px; }
+.br-lbl { width: 56px; font-size: 10px; display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.br-sym { font-size: 14px; }
+.br-track { flex: 1; height: 9px; background: var(--border); border-radius: 9px; overflow: hidden; }
+.br-fill { height: 100%; border-radius: 9px; transition: width 1s cubic-bezier(.34,1.56,.64,1); }
+.br-cnt { font-size: 11px; color: var(--text-light); width: 18px; text-align: right; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.idea-item { padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; line-height: 1.7; color: var(--text-mid); }
+
+.overlay {
+  position: fixed; inset: 0; background: rgba(46,40,32,.45); backdrop-filter: blur(5px);
+  display: flex; align-items: flex-end; z-index: 100; opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.overlay.on { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--paper); border-radius: 24px 24px 0 0; padding: 18px 20px 44px;
+  width: 100%; max-height: 80vh; overflow-y: auto;
+  transform: translateY(100%); transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.overlay.on .modal { transform: translateY(0); }
+.modal-handle { width: 34px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 15px; }
+.modal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.modal-sym { font-size: 30px; }
+.modal-ename { font-family: 'Shippori Mincho', serif; font-size: 18px; }
+.modal-stars-line { font-size: 14px; }
+.modal-dt { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+.modal-txt { font-size: 14px; line-height: 1.85; margin-bottom: 10px; }
+.modal-idea { font-size: 12px; color: var(--text-light); line-height: 1.7; margin-bottom: 10px; }
+.modal-img { width: 100%; border-radius: 14px; }
+
+/* ── Garden ── */
+.garden-card {
+  background: var(--paper); border-radius: 20px; padding: 14px 14px 10px;
+  box-shadow: 0 2px 12px var(--shadow); margin-bottom: 12px;
+}
+.garden-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.garden-title { font-size: 11px; color: var(--text-light); letter-spacing: 0.1em; }
+.garden-month-nav { display: flex; gap: 4px; }
+.month-nav-btn {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+  width: 26px; height: 26px; cursor: pointer; font-size: 14px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid); transition: all .18s;
+}
+.month-nav-btn:hover { background: #fff4e8; border-color: #e8883a; color: #e8883a; }
+.garden-wrap { width: 100%; overflow: hidden; border-radius: 12px; }
+.garden-bg {
+  width: 100%; min-height: 160px;
+  background: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
+  position: relative; display: flex; align-items: flex-end;
+}
+.garden-flowers {
+  width: 100%; display: flex; align-items: flex-end;
+  justify-content: space-around; padding: 8px 4px 10px; gap: 2px;
+}
+.garden-flower-slot {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.garden-flower-img {
+  width: 100%; max-width: 32px; height: 64px; object-fit: contain; display: block;
+}
+.garden-flower-name {
+  font-size: 8px; color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4); text-align: center; line-height: 1.2;
+}
+.garden-flower-stars {
+  font-size: 9px; font-weight: 700; color: white;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5); line-height: 1;
+}
+.garden-legend {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+}
+.g-leg { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-mid); }
+.g-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.toast {
+  position: fixed; bottom: 92px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--text); color: white; padding: 9px 20px; border-radius: 20px;
+  font-size: 13px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 200; white-space: nowrap;
+}
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Flower Display (一覧) ── */
+.flower-panel {
+  display: none;
+  background-color: var(--paper);
+  background-image: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
+  border-radius: 20px; padding: 16px; box-shadow: 0 2px 10px var(--shadow);
+  margin-bottom: 12px; text-align: center; overflow: hidden;
+}
+.flower-panel.on { display: block; }
+.flower-panel-img {
+  width: 160px; height: 160px; object-fit: contain;
+  display: block; margin: 0 auto 8px;
+}
+.flower-stage-label {
+  font-size: 11px; color: var(--text-light); letter-spacing: 0.08em; margin-bottom: 4px;
+}
+.flower-star-count {
+  font-family: 'Shippori Mincho', serif; font-size: 13px; color: var(--text-mid);
+}
+.flower-progress {
+  height: 6px; background: var(--border); border-radius: 6px;
+  margin: 8px 16px 0; overflow: hidden;
+}
+.flower-progress-bar {
+  height: 100%; border-radius: 6px; transition: width 0.8s cubic-bezier(.34,1.56,.64,1);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">EMO <em>MEMORY</em></div>
+</header>
+
+<nav class="bottom-nav">
+  <div class="nav-inner">
+    <button class="nav-btn on" id="nav-add" onclick="switchTab('add',this)">
+      <span class="nb-icon">✏️</span><span class="nb-lbl">MEMORY</span>
+    </button>
+    <div class="nav-sep"></div>
+    <button class="nav-btn" id="nav-list" onclick="switchTab('list',this)">
+      <span class="nb-icon">📖</span><span class="nb-lbl">FLOWERS</span>
+    </button>
+    <div class="nav-sep"></div>
+    <button class="nav-btn" id="nav-stats" onclick="switchTab('stats',this)">
+      <span class="nb-icon">✦</span><span class="nb-lbl">GARDEN</span>
+    </button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- ADD -->
+  <div class="screen on" id="s-add">
+    <div class="date-row">
+      <span class="d-label">📅</span>
+      <input class="date-input" type="text" id="date-display" readonly onclick="focusDatePicker()" placeholder="日付を選ぶ">
+      <input class="time-input" type="time" id="time-input">
+      <div class="cal-btn" title="カレンダーで選ぶ">📆
+        <input type="date" id="cal-input" onchange="onCalChange(this)">
+      </div>
+    </div>
+
+    <div class="two-col-picker">
+      <div class="picker-group">
+        <div class="group-label">感 情</div>
+        <div class="emo-grid r3">
+          <button class="eb" data-e="嬉しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">嬉しい</span></button>
+          <button class="eb" data-e="悲しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">悲しい</span></button>
+          <button class="eb" data-e="怒り"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">怒り</span></button>
+          <button class="eb" data-e="驚き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">驚き</span></button>
+          <button class="eb" data-e="不安"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">不安</span></button>
+          <button class="eb" data-e="感動"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">感動</span></button>
+        </div>
+      </div>
+      <div class="picker-divider"></div>
+      <div class="picker-group">
+        <div class="group-label">状 態</div>
+        <div class="emo-grid r2">
+          <button class="eb" data-e="好き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">好き</span></button>
+          <button class="eb" data-e="苦手"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">苦手</span></button>
+          <button class="eb" data-e="願望"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">願望</span></button>
+          <button class="eb" data-e="その他" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">その他</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="intensity-wrap">
+      <div class="intensity-label">★ 強さ（1〜5）</div>
+      <div class="stars" id="stars">
+        <button class="star-btn" onclick="pickStar(1)">★</button>
+        <button class="star-btn" onclick="pickStar(2)">★</button>
+        <button class="star-btn" onclick="pickStar(3)">★</button>
+        <button class="star-btn" onclick="pickStar(4)">★</button>
+        <button class="star-btn" onclick="pickStar(5)">★</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>✏ 今の気持ちをメモ</label>
+      <textarea id="t-memo" rows="4" placeholder="どんな小さなことでも…"></textarea>
+    </div>
+    <div class="card">
+      <label>💡 アイデアの種（気づいたこと・ひらめき）</label>
+      <textarea id="t-idea" rows="2" placeholder="この感情から何か気づいたことは？"></textarea>
+    </div>
+    <div class="card">
+      <label>📷 写真を貼る（任意）</label>
+      <div class="photo-zone">
+        <input type="file" accept="image/*" id="pfile" onchange="loadPhoto(this)">
+        <img id="photo-preview">
+        <div id="pph">
+          <div class="ph-icon">🖼</div>
+          <div class="ph-hint">タップして写真を選ぶ</div>
+        </div>
+      </div>
+    </div>
+    <button class="save-btn" onclick="saveEntry()">✦ 感情を記録する</button>
+  </div>
+
+  <!-- LIST -->
+  <div class="screen" id="s-list">
+    <div class="flower-panel" id="flower-panel">
+      <div class="flower-stage-label" id="flower-stage-label">段階 0</div>
+      <img class="flower-panel-img" id="flower-panel-img" src="" alt="">
+      <div class="flower-star-count" id="flower-star-count">★ 0</div>
+      <div class="flower-progress"><div class="flower-progress-bar" id="flower-progress-bar"></div></div>
+    </div>
+    <!-- Filter chips -->
+    <div class="filter-row" id="filters"></div>
+    <div id="elist"></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="screen" id="s-stats">
+    <!-- Garden -->
+    <div class="garden-card">
+      <div class="garden-header">
+        <div class="garden-title">🌱 <span id="garden-month-label">〇月</span>の庭</div>
+        <div class="garden-month-nav">
+          <button class="month-nav-btn" onclick="shiftGardenMonth(-1)">‹</button>
+          <button class="month-nav-btn" onclick="shiftGardenMonth(1)">›</button>
+        </div>
+      </div>
+      <div class="garden-wrap">
+        <div class="garden-bg" id="garden-bg">
+          <div class="garden-flowers" id="garden-flowers"></div>
+        </div>
+      </div>
+      <div class="garden-legend" id="garden-legend"></div>
+    </div>
+    <div class="sc">
+      <div class="sc-title">✦ 記録サマリー</div>
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-n" id="st-total">0</div><div class="kpi-s">合計記録</div></div>
+        <div class="kpi"><div class="kpi-n" id="st-week">0</div><div class="kpi-s">今週</div></div>
+        <div class="kpi"><div class="kpi-n" id="st-avgstar">—</div><div class="kpi-s">平均の強さ</div></div>
+        <div class="kpi"><div class="kpi-n" id="st-top">—</div><div class="kpi-s">最多感情</div></div>
+      </div>
+    </div>
+    <div class="sc">
+      <div class="sc-title">🌿 過去7日間によく感じたこと</div>
+      <div class="tags" id="recent-tags"></div>
+    </div>
+    <div class="sc">
+      <div class="sc-title">💡 アイデアの種まとめ</div>
+      <div id="idea-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-sym" id="m-sym"></span>
+      <div>
+        <div class="modal-ename" id="m-name"></div>
+        <div class="modal-stars-line" id="m-stars"></div>
+        <div class="modal-dt" id="m-dt"></div>
+      </div>
+    </div>
+    <p class="modal-txt" id="m-txt"></p>
+    <p class="modal-idea" id="m-idea"></p>
+    <img class="modal-img" id="m-img" style="display:none">
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+const BG_LIST_1 = "images/bg_1.png";
+const FLOWER_IMGS = {
+  "種_0": "images/flowers_400/種_0.png",
+  "babyleaf_1": "images/flowers_400/babyleaf_1.png",
+  "嬉しい_2": "images/flowers_400/嬉しい_2.png",
+  "嬉しい_3": "images/flowers_400/嬉しい_3.png",
+  "嬉しい_4": "images/flowers_400/嬉しい_4.png",
+  "悲しい_2": "images/flowers_400/悲しい_2.png",
+  "悲しい_3": "images/flowers_400/悲しい_3.png",
+  "悲しい_4": "images/flowers_400/悲しい_4.png",
+  "不安_2": "images/flowers_400/不安_2.png",
+  "不安_3": "images/flowers_400/不安_3.png",
+  "不安_4": "images/flowers_400/不安_4.png",
+  "怒り_2": "images/flowers_400/怒り_2.png",
+  "怒り_3": "images/flowers_400/怒り_3.png",
+  "怒り_4": "images/flowers_400/怒り_4.png",
+  "驚き_2": "images/flowers_400/驚き_2.png",
+  "驚き_3": "images/flowers_400/驚き_3.png",
+  "驚き_4": "images/flowers_400/驚き_4.png",
+  "感動_2": "images/flowers_400/感動_2.png",
+  "感動_3": "images/flowers_400/感動_3.png",
+  "感動_4": "images/flowers_400/感動_4.png",
+  "好き_2": "images/flowers_400/好き_2.png",
+  "好き_3": "images/flowers_400/好き_3.png",
+  "好き_4": "images/flowers_400/好き_4.png",
+  "苦手_1": "images/flowers_400/苦手_1.png",
+  "苦手_2": "images/flowers_400/苦手_2.png",
+  "苦手_3": "images/flowers_400/苦手_3.png",
+  "苦手_4": "images/flowers_400/苦手_4.png",
+  "願望_2": "images/flowers_400/願望_2.png",
+  "願望_3": "images/flowers_400/願望_3.png",
+  "願望_4": "images/flowers_400/願望_4.png",
+  "その他_2": "images/flowers_400/その他_2.png",
+  "その他_3": "images/flowers_400/その他_3.png",
+  "その他_4": "images/flowers_400/その他_4.png",
+};
+function getFlowerImg(emo, stage) {
+  if (stage === 0) return FLOWER_IMGS['種_0'];
+  if (stage === 1) {
+    if (emo === '苦手') return FLOWER_IMGS['苦手_1'];
+    return FLOWER_IMGS['babyleaf_1'];
+  }
+  return FLOWER_IMGS[emo + '_' + stage] || null;
+}
+
+function getStageFromStars(stars) {
+  if (stars === 0)  return 0;
+  if (stars <= 10)  return 1;
+  if (stars <= 20)  return 2;
+  if (stars <= 30)  return 3;
+  return 4;
+}
+
+const EMO = {
+  "嬉しい": { c:"#f0b830", bg:"#fffaee" },
+  "悲しい": { c:"#6098d8", bg:"#eef3fb" },
+  "怒り":   { c:"#e05858", bg:"#fdf2f2" },
+  "驚き":   { c:"#f09040", bg:"#fff6ee" },
+  "不安":   { c:"#9070d0", bg:"#f5f0fc" },
+  "感動":   { c:"#f070a8", bg:"#fdf0f7" },
+  "好き":   { c:"#90c840", bg:"#f4fbee" },
+  "苦手":   { c:"#50a860", bg:"#eef8f0" },
+  "願望":   { c:"#e8d870", bg:"#fdfbee" },
+  "その他": { c:"#60b8d8", bg:"#eef7fb" },
+};
+
+// 水彩風丸SVGを生成 (size: px数)
+function wcDotSVG(color, size = 28) {
+  const s = size;
+  const r = s / 2;
+  // ランダムに見せるが再現可能なシードとしてcolorを使う
+  const h = color.replace('#','');
+  const n = parseInt(h.slice(0,2),16);
+  // 水彩感：複数の半透明楕円を重ねる
+  const wobble = (i) => {
+    const a = (i * 137.5 * Math.PI / 180);
+    const d = (n % 3 + 1) * 0.06;
+    return { dx: Math.cos(a)*d*s, dy: Math.sin(a)*d*s };
+  };
+  const blobs = [0,1,2,3].map(i => {
+    const {dx,dy} = wobble(i);
+    const rx = r * (0.72 + (n*i%7)*0.025);
+    const ry = r * (0.68 + (n*i%5)*0.028);
+    const rot = (n*i*17)%40 - 20;
+    const alpha = 0.18 + (i*0.09);
+    return `<ellipse cx="${r+dx}" cy="${r+dy}" rx="${rx}" ry="${ry}" transform="rotate(${rot},${r+dx},${r+dy})" fill="${color}" opacity="${alpha}"/>`;
+  }).join('');
+  // メインの丸
+  const main = `<circle cx="${r}" cy="${r}" r="${r*0.72}" fill="${color}" opacity="0.82"/>`;
+  // ハイライト（白ぼかし）
+  const hi = `<ellipse cx="${r*0.72}" cy="${r*0.68}" rx="${r*0.28}" ry="${r*0.18}" fill="white" opacity="0.38"/>`;
+  // 外縁のにじみ
+  const edge = `<circle cx="${r}" cy="${r}" r="${r*0.82}" fill="none" stroke="${color}" stroke-width="${r*0.22}" opacity="0.12"/>`;
+
+  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="wc${h}" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="2" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="${s*0.13}" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+    <g filter="url(#wc${h})">${blobs}${edge}${main}</g>
+    ${hi}
+  </svg>`;
+}
+
+// 感情ボタンの丸を初期化
+function initEmoButtons() {
+  document.querySelectorAll('.eb').forEach(btn => {
+    const emo = btn.dataset.e;
+    if (!emo || !EMO[emo]) return;
+    const symEl = btn.querySelector('.sym');
+    if (symEl) symEl.innerHTML = wcDotSVG(EMO[emo].c, 28);
+  });
+}
+
+// type: 'sunflower'|'hydrangea'|'morning_glory'|'rose'|'gerbera'|'sweetpea'|'tulip'|'cactus'|'evening_primrose'|'margaret'
+
+
+let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
+let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
+
+(function init() {
+  const d = new Date();
+  setDateDisplay(d);
+  document.getElementById('cal-input').value = toDateVal(d);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('time-input').value = `${hh}:${mm}`;
+  renderStars(selStar, null);
+  buildFilters();
+  initEmoButtons();
+})();
+
+function toDateVal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function setDateDisplay(d) {
+  const DAYS = '日月火水木金土';
+  document.getElementById('date-display').value =
+    `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${DAYS[d.getDay()]}）`;
+}
+function onCalChange(input) {
+  if (!input.value) return;
+  const d = new Date(input.value + 'T00:00:00');
+  setDateDisplay(d);
+}
+function focusDatePicker() {
+  document.getElementById('cal-input').showPicker?.();
+}
+function getEntryDate() {
+  const calVal = document.getElementById('cal-input').value;
+  const timeVal = document.getElementById('time-input').value || '00:00';
+  if (!calVal) return new Date().toISOString();
+  return new Date(`${calVal}T${timeVal}:00`).toISOString();
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('s-'+id).classList.add('on');
+  btn.classList.add('on');
+  if (id === 'list') renderList();
+  if (id === 'stats') renderStats();
+}
+
+function pickEmo(btn) {
+  document.querySelectorAll('.eb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  selEmo = btn.dataset.e;
+  renderStars(selStar, EMO[selEmo].c);
+}
+
+function pickStar(n) {
+  selStar = n;
+  renderStars(n, selEmo ? EMO[selEmo].c : null);
+}
+
+function renderStars(n, color) {
+  const col = color || '#c49a3c';
+  document.querySelectorAll('.star-btn').forEach((btn, i) => {
+    if (i < n) { btn.classList.add('lit'); btn.style.color = col; }
+    else { btn.classList.remove('lit'); btn.style.color = '#ddd'; }
+  });
+}
+
+function loadPhoto(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    photoUrl = e.target.result;
+    const p = document.getElementById('photo-preview');
+    p.src = photoUrl; p.style.display = 'block';
+    document.getElementById('pph').style.display = 'none';
+  };
+  r.readAsDataURL(f);
+}
+
+function saveEntry() {
+  if (!selEmo) { showToast('感情を選んでね 💭'); return; }
+  const text = document.getElementById('t-memo').value.trim();
+  if (!text) { showToast('気持ちをメモしてね ✏'); return; }
+  const entry = {
+    id: Date.now(), emo: selEmo, star: selStar,
+    text, idea: document.getElementById('t-idea').value.trim(),
+    photo: photoUrl, date: getEntryDate()
+  };
+  entries.unshift(entry);
+  localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  document.querySelectorAll('.eb').forEach(b => b.classList.remove('on'));
+  document.getElementById('t-memo').value = '';
+  document.getElementById('t-idea').value = '';
+  document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('pph').style.display = 'block';
+  document.getElementById('pfile').value = '';
+  selEmo = null; photoUrl = null; selStar = 3;
+  renderStars(3, null);
+  showToast('記録しました ✓');
+}
+
+function buildFilters() {
+  const row = document.getElementById('filters');
+  const EMO_GROUP = {
+    '感情': ['嬉しい','悲しい','怒り','驚き','不安','感動'],
+    '状態': ['好き','苦手','願望','その他'],
+  };
+  const allBtn = `<button class="chip${curFilter==='all'?' on':''}" data-f="all" onclick="setFilter(this)">すべて</button>`;
+  const groups = Object.entries(EMO_GROUP).map(([grp, keys]) =>
+    `<span class="filter-grp-lbl">${grp}</span>` +
+    keys.map(k => `<button class="chip${curFilter===k?' on':''}" data-f="${k}" onclick="setFilter(this)"><span class="sym-dot" style="width:12px;height:12px;vertical-align:middle;margin-right:3px">${wcDotSVG(EMO[k].c,12)}</span>${k}</button>`).join('')
+  ).join('');
+  row.innerHTML = allBtn + groups;
+}
+
+function setFilter(btn) {
+  document.querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  curFilter = btn.dataset.f;
+  updateFlowerPanel();
+  renderList();
+}
+
+function updateFlowerPanel() {
+  const panel = document.getElementById('flower-panel');
+  if (curFilter === 'all') {
+    panel.classList.remove('on');
+    return;
+  }
+  panel.classList.add('on');
+
+  // 累計星数を計算（全期間）
+  const totalStars = entries.filter(e => e.emo === curFilter).reduce((s,e) => s+(e.star||3), 0);
+  const stage = getStageFromStars(totalStars);
+  const img = getFlowerImg(curFilter, stage);
+
+  document.getElementById('flower-panel-img').src = img || '';
+
+  const stageLabels = ['🌱 種', '🌿 双葉', '🌾 成長中', '🌸 蕾', '🌺 満開'];
+  document.getElementById('flower-stage-label').textContent = stageLabels[stage] || '';
+  document.getElementById('flower-star-count').textContent = `★ ${totalStars}`;
+
+  // progress bar
+  const pct = Math.min(totalStars / 31 * 100, 100);
+  const bar = document.getElementById('flower-progress-bar');
+  bar.style.width = pct + '%';
+  bar.style.background = EMO[curFilter]?.c || '#e8883a';
+}
+
+function starHTML(n, color) {
+  return Array.from({length:5}, (_,i) =>
+    `<span style="color:${i<n?color:'#ddd'}">★</span>`
+  ).join('');
+}
+
+function renderList() {
+  buildFilters();
+  const list = document.getElementById('elist');
+  const filtered = curFilter === 'all' ? entries : entries.filter(e => e.emo === curFilter);
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(e => {
+    const d = new Date(e.date);
+    const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
+    return `<div class="ecard" style="border-left-color:${EMO[e.emo].c}" onclick="openModal(${e.id})">
+      <div class="ecard-top">
+        <span class="ecard-sym sym-dot" style="width:20px;height:20px">${wcDotSVG(EMO[e.emo].c,20)}</span>
+        <span class="ecard-name" style="color:${EMO[e.emo].c}">${e.emo}</span>
+        <span class="ecard-stars">${starHTML(e.star, EMO[e.emo].c)}</span>
+        <span class="ecard-date">${ds}</span>
+      </div>
+      <div class="ecard-text">${e.text}</div>
+      ${e.photo ? `<img class="ecard-thumb" src="${e.photo}">` : ''}
+    </div>`;
+  }).join('');
+}
+
+function openModal(id) {
+  const e = entries.find(x => x.id === id); if (!e) return;
+  const d = new Date(e.date);
+  document.getElementById('m-sym').innerHTML = `<span class="sym-dot" style="width:36px;height:36px">${wcDotSVG(EMO[e.emo].c,36)}</span>`;
+  document.getElementById('m-name').textContent = e.emo;
+  document.getElementById('m-name').style.color = EMO[e.emo].c;
+  document.getElementById('m-stars').innerHTML = starHTML(e.star, EMO[e.emo].c);
+  document.getElementById('m-dt').textContent =
+    `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('m-txt').textContent = e.text;
+  document.getElementById('m-idea').textContent = e.idea ? '💡 '+e.idea : '';
+  const img = document.getElementById('m-img');
+  if (e.photo) { img.src = e.photo; img.style.display = 'block'; } else img.style.display = 'none';
+  document.getElementById('overlay').classList.add('on');
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('overlay')) document.getElementById('overlay').classList.remove('on');
+}
+
+function renderStats() {
+  drawGarden();
+  const total = entries.length;
+  document.getElementById('st-total').textContent = total;
+  const now = new Date(), wa = new Date(now - 7*24*3600*1000);
+  const thisWeek = entries.filter(e => new Date(e.date) > wa);
+  document.getElementById('st-week').textContent = thisWeek.length;
+  if (total) {
+    const avg = (entries.reduce((s,e) => s+(e.star||3), 0) / total).toFixed(1);
+    document.getElementById('st-avgstar').textContent = avg;
+  }
+  const counts = {};
+  Object.keys(EMO).forEach(k => counts[k] = 0);
+  entries.forEach(e => counts[e.emo] = (counts[e.emo]||0)+1);
+  const topEmo = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('st-top').innerHTML = topEmo && topEmo[1] > 0
+    ? `<span style="display:inline-flex;justify-content:center">${wcDotSVG(EMO[topEmo[0]].c, 32)}</span>` : '—';
+  const rc = {};
+  thisWeek.forEach(e => rc[e.emo] = (rc[e.emo]||0)+1);
+  const rtag = Object.entries(rc).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('recent-tags').innerHTML = rtag.length
+    ? rtag.map(([k, n]) => `<span class="tag" style="background:${EMO[k].bg};color:${EMO[k].c}"><span class="sym-dot" style="width:14px;height:14px;vertical-align:middle;margin-right:3px">${wcDotSVG(EMO[k].c,14)}</span>${k} × ${n}</span>`).join('')
+    : '<span style="font-size:12px;color:var(--text-light)">まだ記録がありません</span>';
+  const ideas = entries.filter(e => e.idea).slice(0,6);
+  document.getElementById('idea-list').innerHTML = ideas.length
+    ? ideas.map(e => `<div class="idea-item"><span class="sym-dot" style="width:14px;height:14px;vertical-align:middle;margin-right:4px">${wcDotSVG(EMO[e.emo].c,14)}</span>${e.idea}</div>`).join('')
+    : '<p style="font-size:12px;color:var(--text-light)">「アイデアの種」を書くとここに集まります 🌱</p>';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+/* ────────── FLOWER GARDEN (PNG版) ────────── */
+let gardenMonthOffset = 0;
+
+function shiftGardenMonth(delta) {
+  gardenMonthOffset += delta;
+  if (gardenMonthOffset > 0) gardenMonthOffset = 0;
+  drawGarden();
+}
+
+function getGardenMonth() {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + gardenMonthOffset);
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+function getGardenStage(stars) {
+  if (stars === 0)  return 0;
+  if (stars <= 10)  return 1;
+  if (stars <= 20)  return 2;
+  if (stars <= 30)  return 3;
+  return 4;
+}
+
+function getGardenImgPath(emo, stage) {
+  if (stage === 0) return 'images/flowers_garden/庭_種_0.png';
+  if (stage === 1) {
+    if (emo === '苦手') return 'images/flowers_garden/庭_苦手_1.png';
+    return 'images/flowers_garden/庭_babyleaf_1.png';
+  }
+  return `images/flowers_garden/庭_${emo}_${stage}.png`;
+}
+
+function drawGarden() {
+  const { year, month } = getGardenMonth();
+  const lbl = document.getElementById('garden-month-label');
+  if (lbl) lbl.textContent = `${year}年${month + 1}月`;
+
+  const starCounts = {};
+  Object.keys(EMO).forEach(k => starCounts[k] = 0);
+  entries.forEach(e => {
+    const d = new Date(e.date);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      starCounts[e.emo] = (starCounts[e.emo] || 0) + (e.star || 3);
+    }
+  });
+
+  const container = document.getElementById('garden-flowers');
+  if (!container) return;
+
+  container.innerHTML = Object.keys(EMO).map(emo => {
+    const stars = starCounts[emo];
+    const stage = getGardenStage(stars);
+    const imgPath = getGardenImgPath(emo, stage);
+    const starsLabel = stars > 0 ? `<div class="garden-flower-stars">${stars > 99 ? '99+' : stars}</div>` : '<div class="garden-flower-stars" style="opacity:0">0</div>';
+    return `<div class="garden-flower-slot">
+      <img class="garden-flower-img" src="${imgPath}" alt="${emo}" loading="lazy">
+      <div class="garden-flower-name">${emo}</div>
+      ${starsLabel}
+    </div>`;
+  }).join('');
+
+  // legend
+  const leg = document.getElementById('garden-legend');
+  if (leg) {
+    leg.innerHTML = Object.entries(starCounts)
+      .filter(([,n]) => n > 0)
+      .map(([k]) => `<span class="g-leg">${wcDotSVG(EMO[k].c, 10)} ${k}</span>`)
+      .join('');
+  }
+}
+</script>
+
+<script>
+// ── Service Worker 登録 ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[SW] 登録成功:', reg.scope))
+      .catch(err => console.warn('[SW] 登録失敗:', err));
+  });
+}
+</script>
+</body>
+</html>
