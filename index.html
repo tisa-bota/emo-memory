@@ -290,7 +290,7 @@ textarea::placeholder { color: #c8baaa; }
 /* ── Garden ── */
 .garden-card {
   background: var(--paper); border-radius: 20px; padding: 14px 14px 10px;
-  box-shadow: 0 2px 12px var(--shadow); margin-bottom: 12px;
+  box-shadow: 0 2px 12px var(--shadow); margin-bottom: 0;
 }
 .garden-header {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
@@ -320,17 +320,24 @@ textarea::placeholder { color: #c8baaa; }
 .garden-flower-img {
   width: 100%; max-width: 32px; height: 64px; object-fit: contain; display: block;
 }
-.garden-flower-name {
-  font-size: 8px; color: rgba(255,255,255,0.9);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.4); text-align: center; line-height: 1.2;
+.garden-flower-name { display: none; }
+.garden-flower-stars { display: none; }
+.garden-labels-bar {
+  background: var(--paper); border-radius: 16px;
+  padding: 8px 4px 10px; margin-bottom: 12px;
+  box-shadow: 0 4px 10px var(--shadow);
+  display: flex; justify-content: space-around;
 }
-.garden-flower-stars {
-  font-size: 9px; font-weight: 700; color: white;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5); line-height: 1;
+.garden-label-slot {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
-.garden-legend {
-  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+.garden-label-name {
+  font-size: 8px; color: var(--text-light); text-align: center; line-height: 1.2;
 }
+.garden-label-stars {
+  font-size: 9px; font-weight: 700; color: var(--text-mid); line-height: 1;
+}
+.garden-legend { display: none; }
 .g-leg { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-mid); }
 .g-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
@@ -348,22 +355,26 @@ textarea::placeholder { color: #c8baaa; }
   background-color: var(--paper);
   background-image: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
   border-radius: 20px; padding: 16px; box-shadow: 0 2px 10px var(--shadow);
-  margin-bottom: 12px; text-align: center; overflow: hidden;
+  margin-bottom: 0; text-align: center; overflow: hidden;
 }
 .flower-panel.on { display: block; }
 .flower-panel-img {
   width: 160px; height: 160px; object-fit: contain;
-  display: block; margin: 0 auto 8px;
+  display: block; margin: 0 auto;
 }
-.flower-stage-label {
-  font-size: 11px; color: var(--text-light); letter-spacing: 0.08em; margin-bottom: 4px;
+.flower-info-bar {
+  display: none; align-items: center; gap: 10px;
+  background: var(--paper); border-radius: 16px;
+  padding: 8px 16px 10px; margin-bottom: 12px;
+  box-shadow: 0 4px 10px var(--shadow);
 }
+.flower-info-bar.on { display: flex; margin-bottom: 12px; }
 .flower-star-count {
   font-family: 'Shippori Mincho', serif; font-size: 13px; color: var(--text-mid);
+  flex-shrink: 0;
 }
 .flower-progress {
-  height: 6px; background: var(--border); border-radius: 6px;
-  margin: 8px 16px 0; overflow: hidden;
+  flex: 1; height: 6px; background: var(--border); border-radius: 6px; overflow: hidden;
 }
 .flower-progress-bar {
   height: 100%; border-radius: 6px; transition: width 0.8s cubic-bezier(.34,1.56,.64,1);
@@ -465,8 +476,9 @@ textarea::placeholder { color: #c8baaa; }
   <!-- LIST -->
   <div class="screen" id="s-list">
     <div class="flower-panel" id="flower-panel">
-      <div class="flower-stage-label" id="flower-stage-label">段階 0</div>
       <img class="flower-panel-img" id="flower-panel-img" src="" alt="">
+    </div>
+    <div class="flower-info-bar" id="flower-info-bar">
       <div class="flower-star-count" id="flower-star-count">★ 0</div>
       <div class="flower-progress"><div class="flower-progress-bar" id="flower-progress-bar"></div></div>
     </div>
@@ -493,6 +505,7 @@ textarea::placeholder { color: #c8baaa; }
       </div>
       <div class="garden-legend" id="garden-legend"></div>
     </div>
+    <div class="garden-labels-bar" id="garden-labels-bar"></div>
     <div class="sc">
       <div class="sc-title">✦ 記録サマリー</div>
       <div class="kpis">
@@ -762,7 +775,7 @@ function buildFilters() {
     '感情': ['嬉しい','悲しい','怒り','驚き','不安','感動'],
     '状態': ['好き','苦手','願い','その他'],
   };
-  const allBtn = `<button class="chip${curFilter==='all'?' on':''}" data-f="all" onclick="setFilter(this)">すべて</button>`;
+  const allBtn = `<button class="chip${curFilter==='all'?' on':''}" data-f="all" onclick="setFilter(this)">すべて</button><span style="font-size:10px;color:var(--text-light);line-height:1.5;align-self:center;">感情の花は強さに応じて４段階で成長します 🌱→🌺</span>`;
   const groups = Object.entries(EMO_GROUP).map(([grp, keys]) =>
     `<span class="filter-grp-lbl">${grp}</span>` +
     keys.map(k => `<button class="chip${curFilter===k?' on':''}" data-f="${k}" onclick="setFilter(this)"><span class="sym-dot" style="width:12px;height:12px;vertical-align:middle;margin-right:3px">${wcDotSVG(EMO[k].c,12)}</span>${k}</button>`).join('')
@@ -780,11 +793,14 @@ function setFilter(btn) {
 
 function updateFlowerPanel() {
   const panel = document.getElementById('flower-panel');
+  const infoBar = document.getElementById('flower-info-bar');
   if (curFilter === 'all') {
     panel.classList.remove('on');
+    infoBar.classList.remove('on');
     return;
   }
   panel.classList.add('on');
+  infoBar.classList.add('on');
 
   // 累計星数を計算（全期間）
   const totalStars = entries.filter(e => e.emo === curFilter).reduce((s,e) => s+(e.star||3), 0);
@@ -792,9 +808,6 @@ function updateFlowerPanel() {
   const img = getFlowerImg(curFilter, stage);
 
   document.getElementById('flower-panel-img').src = img || '';
-
-  const stageLabels = ['🌱 種', '🌿 双葉', '🌾 成長中', '🌸 蕾', '🌺 満開'];
-  document.getElementById('flower-stage-label').textContent = stageLabels[stage] || '';
   document.getElementById('flower-star-count').textContent = `★ ${totalStars}`;
 
   // progress bar
@@ -956,13 +969,16 @@ function drawGarden() {
     </div>`;
   }).join('');
 
-  // legend
-  const leg = document.getElementById('garden-legend');
-  if (leg) {
-    leg.innerHTML = Object.entries(starCounts)
-      .filter(([,n]) => n > 0)
-      .map(([k]) => `<span class="g-leg">${wcDotSVG(EMO[k].c, 10)} ${k}</span>`)
-      .join('');
+  // labels bar（枠外）
+  const labelsBar = document.getElementById('garden-labels-bar');
+  if (labelsBar) {
+    labelsBar.innerHTML = Object.keys(EMO).map(emo => {
+      const stars = starCounts[emo];
+      return `<div class="garden-label-slot">
+        <div class="garden-label-name">${emo}</div>
+        <div class="garden-label-stars" style="color:${stars > 0 ? EMO[emo].c : 'var(--border)'}">${stars > 0 ? (stars > 99 ? '99+' : stars) : '—'}</div>
+      </div>`;
+    }).join('');
   }
 }
 </script>
