@@ -143,7 +143,7 @@ header {
 .eb[data-e="感動"].on   .lbl { color:#f070a8; }
 .eb[data-e="好き"].on   .lbl { color:#90c840; }
 .eb[data-e="苦手"].on   .lbl { color:#50a860; }
-.eb[data-e="願望"].on   .lbl { color:#e8d870; }
+.eb[data-e="願い"].on   .lbl { color:#e8d870; }
 .eb[data-e="その他"].on .lbl { color:#60b8d8; }
 .eb .sym { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
 .eb .lbl { font-size: 10px; font-weight: 500; color: var(--text-mid); }
@@ -158,7 +158,7 @@ header {
 .eb[data-e="感動"].on   { background:#fdf0f7; border-color:#f070a8; }
 .eb[data-e="好き"].on   { background:#f4fbee; border-color:#90c840; }
 .eb[data-e="苦手"].on   { background:#eef8f0; border-color:#50a860; }
-.eb[data-e="願望"].on   { background:#fdfbee; border-color:#e8d870; }
+.eb[data-e="願い"].on   { background:#fdfbee; border-color:#e8d870; }
 .eb[data-e="その他"].on { background:#eef7fb; border-color:#60b8d8; }
 
 .intensity-wrap {
@@ -224,7 +224,7 @@ textarea::placeholder { color: #c8baaa; }
 .chip[data-f="感動"].on   { background:#fdf0f7; color:#f070a8; border-color:#f070a8; }
 .chip[data-f="好き"].on   { background:#f4fbee; color:#90c840; border-color:#90c840; }
 .chip[data-f="苦手"].on   { background:#eef8f0; color:#50a860; border-color:#50a860; }
-.chip[data-f="願望"].on   { background:#fdfbee; color:#c8b830; border-color:#c8b830; }
+.chip[data-f="願い"].on   { background:#fdfbee; color:#c8b830; border-color:#c8b830; }
 .chip[data-f="その他"].on { background:#eef7fb; color:#60b8d8; border-color:#60b8d8; }
 
 .ecard {
@@ -423,7 +423,7 @@ textarea::placeholder { color: #c8baaa; }
         <div class="emo-grid r2">
           <button class="eb" data-e="好き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">好き</span></button>
           <button class="eb" data-e="苦手"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">苦手</span></button>
-          <button class="eb" data-e="願望"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">願望</span></button>
+          <button class="eb" data-e="願い"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">願い</span></button>
           <button class="eb" data-e="その他" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">その他</span></button>
         </div>
       </div>
@@ -538,39 +538,39 @@ textarea::placeholder { color: #c8baaa; }
 
 const BG_LIST_1 = "images/bg_1.png";
 const FLOWER_IMGS = {
-  "種_0": "images/flowers_400/種_0.png",
+  "種_0": "images/flowers_400/seeds_0.png",
   "babyleaf_1": "images/flowers_400/babyleaf_1.png",
-  "嬉しい_2": "images/flowers_400/嬉しい_2.png",
-  "嬉しい_3": "images/flowers_400/嬉しい_3.png",
-  "嬉しい_4": "images/flowers_400/嬉しい_4.png",
-  "悲しい_2": "images/flowers_400/悲しい_2.png",
-  "悲しい_3": "images/flowers_400/悲しい_3.png",
-  "悲しい_4": "images/flowers_400/悲しい_4.png",
-  "不安_2": "images/flowers_400/不安_2.png",
-  "不安_3": "images/flowers_400/不安_3.png",
-  "不安_4": "images/flowers_400/不安_4.png",
-  "怒り_2": "images/flowers_400/怒り_2.png",
-  "怒り_3": "images/flowers_400/怒り_3.png",
-  "怒り_4": "images/flowers_400/怒り_4.png",
-  "驚き_2": "images/flowers_400/驚き_2.png",
-  "驚き_3": "images/flowers_400/驚き_3.png",
-  "驚き_4": "images/flowers_400/驚き_4.png",
-  "感動_2": "images/flowers_400/感動_2.png",
-  "感動_3": "images/flowers_400/感動_3.png",
-  "感動_4": "images/flowers_400/感動_4.png",
-  "好き_2": "images/flowers_400/好き_2.png",
-  "好き_3": "images/flowers_400/好き_3.png",
-  "好き_4": "images/flowers_400/好き_4.png",
-  "苦手_1": "images/flowers_400/苦手_1.png",
-  "苦手_2": "images/flowers_400/苦手_2.png",
-  "苦手_3": "images/flowers_400/苦手_3.png",
-  "苦手_4": "images/flowers_400/苦手_4.png",
-  "願望_2": "images/flowers_400/願望_2.png",
-  "願望_3": "images/flowers_400/願望_3.png",
-  "願望_4": "images/flowers_400/願望_4.png",
-  "その他_2": "images/flowers_400/その他_2.png",
-  "その他_3": "images/flowers_400/その他_3.png",
-  "その他_4": "images/flowers_400/その他_4.png",
+  "嬉しい_2": "images/flowers_400/joy_2.png",
+  "嬉しい_3": "images/flowers_400/joy_3.png",
+  "嬉しい_4": "images/flowers_400/joy_4.png",
+  "悲しい_2": "images/flowers_400/sad_2.png",
+  "悲しい_3": "images/flowers_400/sad_3.png",
+  "悲しい_4": "images/flowers_400/sad_4.png",
+  "不安_2": "images/flowers_400/anxiety_2.png",
+  "不安_3": "images/flowers_400/anxiety_3.png",
+  "不安_4": "images/flowers_400/anxiety_4.png",
+  "怒り_2": "images/flowers_400/anger_2.png",
+  "怒り_3": "images/flowers_400/anger_3.png",
+  "怒り_4": "images/flowers_400/anger_4.png",
+  "驚き_2": "images/flowers_400/surprise_2.png",
+  "驚き_3": "images/flowers_400/surprise_3.png",
+  "驚き_4": "images/flowers_400/surprise_4.png",
+  "感動_2": "images/flowers_400/inspiration_2.png",
+  "感動_3": "images/flowers_400/inspiration_3.png",
+  "感動_4": "images/flowers_400/inspiration_4.png",
+  "好き_2": "images/flowers_400/love_2.png",
+  "好き_3": "images/flowers_400/love_3.png",
+  "好き_4": "images/flowers_400/love_4.png",
+  "苦手_1": "images/flowers_400/dislike_1.png",
+  "苦手_2": "images/flowers_400/dislike_2.png",
+  "苦手_3": "images/flowers_400/dislike_3.png",
+  "苦手_4": "images/flowers_400/dislike_4.png",
+  "願い_2": "images/flowers_400/wish_2.png",
+  "願い_3": "images/flowers_400/wish_3.png",
+  "願い_4": "images/flowers_400/wish_4.png",
+  "その他_2": "images/flowers_400/others_2.png",
+  "その他_3": "images/flowers_400/others_3.png",
+  "その他_4": "images/flowers_400/others_4.png",
 };
 function getFlowerImg(emo, stage) {
   if (stage === 0) return FLOWER_IMGS['種_0'];
@@ -598,7 +598,7 @@ const EMO = {
   "感動":   { c:"#f070a8", bg:"#fdf0f7" },
   "好き":   { c:"#90c840", bg:"#f4fbee" },
   "苦手":   { c:"#50a860", bg:"#eef8f0" },
-  "願望":   { c:"#e8d870", bg:"#fdfbee" },
+  "願い":   { c:"#e8d870", bg:"#fdfbee" },
   "その他": { c:"#60b8d8", bg:"#eef7fb" },
 };
 
@@ -760,7 +760,7 @@ function buildFilters() {
   const row = document.getElementById('filters');
   const EMO_GROUP = {
     '感情': ['嬉しい','悲しい','怒り','驚き','不安','感動'],
-    '状態': ['好き','苦手','願望','その他'],
+    '状態': ['好き','苦手','願い','その他'],
   };
   const allBtn = `<button class="chip${curFilter==='all'?' on':''}" data-f="all" onclick="setFilter(this)">すべて</button>`;
   const groups = Object.entries(EMO_GROUP).map(([grp, keys]) =>
@@ -913,12 +913,18 @@ function getGardenStage(stars) {
 }
 
 function getGardenImgPath(emo, stage) {
-  if (stage === 0) return 'images/flowers_garden/庭_種_0.png';
+  const emoKeyMap = {
+    '嬉しい':'joy','悲しい':'sad','怒り':'anger','驚き':'surprise',
+    '不安':'anxiety','感動':'inspiration','好き':'love',
+    '苦手':'dislike','願い':'wish','その他':'others'
+  };
+  const emoKey = emoKeyMap[emo] || emo;
+  if (stage === 0) return 'images/flowers_garden/niwa_seeds_0.png';
   if (stage === 1) {
-    if (emo === '苦手') return 'images/flowers_garden/庭_苦手_1.png';
-    return 'images/flowers_garden/庭_babyleaf_1.png';
+    if (emo === '苦手') return 'images/flowers_garden/niwa_dislike_1.png';
+    return 'images/flowers_garden/niwa_babyleaf_1.png';
   }
-  return `images/flowers_garden/庭_${emo}_${stage}.png`;
+  return `images/flowers_garden/niwa_${emoKey}_${stage}.png`;
 }
 
 function drawGarden() {
@@ -962,7 +968,6 @@ function drawGarden() {
 </script>
 
 <script>
-// ── Service Worker 登録 ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js')
