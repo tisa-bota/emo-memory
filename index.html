@@ -379,6 +379,29 @@ textarea::placeholder { color: #c8baaa; }
 .flower-progress-bar {
   height: 100%; border-radius: 6px; transition: width 0.8s cubic-bezier(.34,1.56,.64,1);
 }
+
+/* ── Modal edit ── */
+.modal-action-row {
+  display: flex; gap: 10px; margin-top: 16px;
+}
+.modal-del-btn {
+  flex: 1; padding: 11px; border: 1.5px solid var(--border); border-radius: 14px;
+  background: var(--bg); color: var(--text-mid); font-family: inherit; font-size: 13px;
+  cursor: pointer; transition: all .18s;
+}
+.modal-del-btn:hover { border-color: #e05858; color: #e05858; background: #fdf2f2; }
+.modal-edit-btn {
+  flex: 2; padding: 11px; border: none; border-radius: 14px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  color: var(--text-mid); font-family: inherit; font-size: 13px;
+  cursor: pointer; transition: all .18s;
+}
+.modal-edit-btn:hover { border-color: #e8883a; color: #e8883a; background: #fff9f3; }
+.medit-section-label {
+  font-size: 11px; color: var(--text-light); margin-bottom: 7px; letter-spacing: 0.06em;
+}
+.medit-emo-grid { gap: 5px; margin-bottom: 0; }
+.medit-emo-grid .eb { padding: 7px 4px 5px; border-radius: 12px; }
 </style>
 </head>
 <body>
@@ -531,17 +554,70 @@ textarea::placeholder { color: #c8baaa; }
 <div class="overlay" id="overlay" onclick="closeModal(event)">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-head">
-      <span class="modal-sym" id="m-sym"></span>
-      <div>
-        <div class="modal-ename" id="m-name"></div>
-        <div class="modal-stars-line" id="m-stars"></div>
-        <div class="modal-dt" id="m-dt"></div>
+
+    <!-- 表示モード -->
+    <div id="m-view-mode">
+      <div class="modal-head">
+        <span class="modal-sym" id="m-sym"></span>
+        <div>
+          <div class="modal-ename" id="m-name"></div>
+          <div class="modal-stars-line" id="m-stars"></div>
+          <div class="modal-dt" id="m-dt"></div>
+        </div>
+      </div>
+      <p class="modal-txt" id="m-txt"></p>
+      <p class="modal-idea" id="m-idea"></p>
+      <img class="modal-img" id="m-img" style="display:none">
+      <div class="modal-action-row">
+        <button class="modal-del-btn" onclick="deleteEntry()">🗑 削除</button>
+        <button class="modal-edit-btn" onclick="enterEditMode()">✏ 編集</button>
+      </div>
+      <!-- 削除確認 -->
+      <div id="m-delete-confirm" style="display:none;margin-top:12px;background:#fdf2f2;border-radius:14px;padding:13px 14px;text-align:center">
+        <div style="font-size:13px;color:#e05858;margin-bottom:10px">本当に削除しますか？</div>
+        <div style="display:flex;gap:8px">
+          <button class="modal-del-btn" onclick="deleteCancelled()" style="flex:1">キャンセル</button>
+          <button onclick="deleteConfirmed()" style="flex:1;padding:11px;border:none;border-radius:14px;background:#e05858;color:#fff;font-family:inherit;font-size:13px;cursor:pointer">削除する</button>
+        </div>
       </div>
     </div>
-    <p class="modal-txt" id="m-txt"></p>
-    <p class="modal-idea" id="m-idea"></p>
-    <img class="modal-img" id="m-img" style="display:none">
+
+    <!-- 編集モード -->
+    <div id="m-edit-mode" style="display:none">
+      <div class="medit-section-label">感情</div>
+      <div class="emo-grid r5 medit-emo-grid" id="m-emo-grid"></div>
+
+      <div class="medit-section-label" style="margin-top:12px">★ 強さ</div>
+      <div class="stars" id="m-stars-edit">
+        <button class="star-btn" onclick="pickEditStar(1)">★</button>
+        <button class="star-btn" onclick="pickEditStar(2)">★</button>
+        <button class="star-btn" onclick="pickEditStar(3)">★</button>
+        <button class="star-btn" onclick="pickEditStar(4)">★</button>
+        <button class="star-btn" onclick="pickEditStar(5)">★</button>
+      </div>
+
+      <div class="medit-section-label" style="margin-top:12px">✏ メモ</div>
+      <textarea id="m-memo-edit" rows="4"></textarea>
+
+      <div class="medit-section-label" style="margin-top:10px">💡 アイデアの種</div>
+      <textarea id="m-idea-edit" rows="2"></textarea>
+
+      <div class="medit-section-label" style="margin-top:10px">📷 写真</div>
+      <div class="photo-zone" style="margin-bottom:10px">
+        <input type="file" accept="image/*" id="m-pfile" onchange="loadEditPhoto(this)">
+        <img id="m-photo-edit" style="width:100%;max-height:120px;object-fit:cover;border-radius:10px;display:none">
+        <div id="m-pph" style="padding:8px 0">
+          <div class="ph-icon">🖼</div>
+          <div class="ph-hint">タップして変更</div>
+        </div>
+      </div>
+
+      <div class="modal-action-row">
+        <button class="modal-del-btn" onclick="exitEditMode()">キャンセル</button>
+        <button class="modal-edit-btn" onclick="saveEdit()" style="background:linear-gradient(135deg,#e8883a,#d4855c);color:#fff">保存する</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -847,7 +923,11 @@ function renderList() {
   }).join('');
 }
 
+let modalEntryId = null;
+let editEmo = null, editStar = 3, editPhotoUrl = null;
+
 function openModal(id) {
+  modalEntryId = id;
   const e = entries.find(x => x.id === id); if (!e) return;
   const d = new Date(e.date);
   document.getElementById('m-sym').innerHTML = `<span class="sym-dot" style="width:36px;height:36px">${wcDotSVG(EMO[e.emo].c,36)}</span>`;
@@ -860,10 +940,132 @@ function openModal(id) {
   document.getElementById('m-idea').textContent = e.idea ? '💡 '+e.idea : '';
   const img = document.getElementById('m-img');
   if (e.photo) { img.src = e.photo; img.style.display = 'block'; } else img.style.display = 'none';
+  // 常に表示モードで開く
+  document.getElementById('m-view-mode').style.display = '';
+  document.getElementById('m-edit-mode').style.display = 'none';
   document.getElementById('overlay').classList.add('on');
 }
+
 function closeModal(e) {
-  if (e.target === document.getElementById('overlay')) document.getElementById('overlay').classList.remove('on');
+  if (e.target === document.getElementById('overlay')) {
+    document.getElementById('overlay').classList.remove('on');
+  }
+}
+
+function deleteEntry() {
+  document.getElementById('m-delete-confirm').style.display = '';
+}
+function deleteConfirmed() {
+  entries = entries.filter(x => x.id !== modalEntryId);
+  localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  document.getElementById('m-delete-confirm').style.display = 'none';
+  document.getElementById('overlay').classList.remove('on');
+  updateFlowerPanel();
+  renderList();
+  showToast('削除しました');
+}
+function deleteCancelled() {
+  document.getElementById('m-delete-confirm').style.display = 'none';
+}
+
+function enterEditMode() {
+  const e = entries.find(x => x.id === modalEntryId); if (!e) return;
+  editEmo = e.emo;
+  editStar = e.star || 3;
+  editPhotoUrl = e.photo || null;
+
+  // 感情グリッド生成
+  const grid = document.getElementById('m-emo-grid');
+  grid.innerHTML = Object.keys(EMO).map(emo =>
+    `<button class="eb${emo===editEmo?' on':''}" data-e="${emo}" onclick="pickEditEmo(this)">
+      <span class="sym">${wcDotSVG(EMO[emo].c,28)}</span><span class="lbl">${emo}</span>
+    </button>`
+  ).join('');
+  // on状態のスタイル適用
+  grid.querySelectorAll('.eb').forEach(btn => {
+    const emo = btn.dataset.e;
+    if (btn.classList.contains('on')) {
+      btn.style.background = EMO[emo].bg;
+      btn.style.borderColor = EMO[emo].c;
+      btn.querySelector('.lbl').style.color = EMO[emo].c;
+    }
+  });
+
+  renderEditStars(editStar, EMO[editEmo].c);
+  document.getElementById('m-memo-edit').value = e.text;
+  document.getElementById('m-idea-edit').value = e.idea || '';
+
+  const ph = document.getElementById('m-photo-edit');
+  if (editPhotoUrl) { ph.src = editPhotoUrl; ph.style.display = 'block'; document.getElementById('m-pph').style.display = 'none'; }
+  else { ph.style.display = 'none'; document.getElementById('m-pph').style.display = ''; }
+
+  document.getElementById('m-view-mode').style.display = 'none';
+  document.getElementById('m-edit-mode').style.display = '';
+}
+
+function exitEditMode() {
+  document.getElementById('m-view-mode').style.display = '';
+  document.getElementById('m-edit-mode').style.display = 'none';
+}
+
+function pickEditEmo(btn) {
+  document.querySelectorAll('#m-emo-grid .eb').forEach(b => {
+    b.classList.remove('on');
+    b.style.background = '';
+    b.style.borderColor = '';
+    b.querySelector('.lbl').style.color = '';
+  });
+  btn.classList.add('on');
+  const emo = btn.dataset.e;
+  btn.style.background = EMO[emo].bg;
+  btn.style.borderColor = EMO[emo].c;
+  btn.querySelector('.lbl').style.color = EMO[emo].c;
+  editEmo = emo;
+  renderEditStars(editStar, EMO[emo].c);
+}
+
+function pickEditStar(n) {
+  editStar = n;
+  renderEditStars(n, editEmo ? EMO[editEmo].c : '#c49a3c');
+}
+
+function renderEditStars(n, color) {
+  document.querySelectorAll('#m-stars-edit .star-btn').forEach((btn, i) => {
+    if (i < n) { btn.classList.add('lit'); btn.style.color = color; }
+    else { btn.classList.remove('lit'); btn.style.color = '#ddd'; }
+  });
+}
+
+function loadEditPhoto(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    editPhotoUrl = ev.target.result;
+    const ph = document.getElementById('m-photo-edit');
+    ph.src = editPhotoUrl; ph.style.display = 'block';
+    document.getElementById('m-pph').style.display = 'none';
+  };
+  r.readAsDataURL(f);
+}
+
+function saveEdit() {
+  const memo = document.getElementById('m-memo-edit').value.trim();
+  if (!memo) { showToast('メモを入力してね ✏'); return; }
+  const idx = entries.findIndex(x => x.id === modalEntryId);
+  if (idx === -1) return;
+  entries[idx] = {
+    ...entries[idx],
+    emo: editEmo,
+    star: editStar,
+    text: memo,
+    idea: document.getElementById('m-idea-edit').value.trim(),
+    photo: editPhotoUrl,
+  };
+  localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  document.getElementById('overlay').classList.remove('on');
+  updateFlowerPanel();
+  renderList();
+  showToast('更新しました ✓');
 }
 
 function renderStats() {
