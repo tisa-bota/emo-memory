@@ -33,11 +33,60 @@ body {
 
 header {
   max-width: 480px; margin: 0 auto;
-  padding: 18px 20px 4px;
-  display: flex; align-items: center; justify-content: center;
+  padding: 14px 20px 4px;
+}
+.header-inner {
+  display: flex; align-items: center; justify-content: space-between;
 }
 .logo { font-family: 'Noto Sans JP', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 0.18em; }
 .logo em { font-style: normal; color: #e8883a; }
+
+/* ── ハンバーガーメニュー ── */
+.menu-wrap { position: relative; }
+.menu-btn {
+  width: 36px; height: 36px; background: var(--paper);
+  border: 1.5px solid var(--border); border-radius: 12px;
+  cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 5px;
+  padding: 0; transition: all .2s;
+}
+.menu-btn:hover { background: #fff4e8; border-color: #e8883a; }
+.menu-btn span {
+  display: block; width: 16px; height: 1.5px;
+  background: var(--text-mid); border-radius: 2px;
+  transition: all .25s;
+}
+.menu-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.menu-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+.dropdown {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  background: var(--paper); border: 1.5px solid var(--border);
+  border-radius: 18px; padding: 6px;
+  box-shadow: 0 8px 28px rgba(80,55,30,0.16);
+  min-width: 210px; z-index: 200;
+  opacity: 0; transform: translateY(-6px) scale(0.97);
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  transform-origin: top left;
+}
+.dropdown.open {
+  opacity: 1; transform: translateY(0) scale(1);
+  pointer-events: all;
+}
+.dropdown-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 10px 12px; border: none; background: none;
+  border-radius: 12px; cursor: pointer; font-family: inherit;
+  text-align: left; transition: background .15s;
+}
+.dropdown-item:hover { background: #fff4e8; }
+.di-icon { font-size: 18px; line-height: 1; flex-shrink: 0; }
+.di-text { display: flex; flex-direction: column; gap: 1px; }
+.di-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.di-sub { font-size: 10px; color: var(--text-light); }
+.dropdown-sep { height: 1px; background: var(--border); margin: 4px 6px; }
 
 /* ── Bottom Nav ── */
 .bottom-nav {
@@ -418,12 +467,40 @@ textarea::placeholder { color: #c8baaa; }
 }
 .medit-emo-grid { gap: 5px; margin-bottom: 0; }
 .medit-emo-grid .eb { padding: 7px 4px 5px; border-radius: 12px; }
+
+
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">EMO <em>MEMORY</em></div>
+  <div class="header-inner">
+    <div class="menu-wrap">
+      <button class="menu-btn" id="menu-btn" onclick="toggleMenu()" aria-label="メニュー">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="dropdown" id="dropdown">
+        <button class="dropdown-item" onclick="exportData(); closeMenu()">
+          <span class="di-icon">📦</span>
+          <span class="di-text">
+            <span class="di-title">データ保存</span>
+            <span class="di-sub">バックアップファイルを作成</span>
+          </span>
+        </button>
+        <div class="dropdown-sep"></div>
+        <label class="dropdown-item">
+          <span class="di-icon">📂</span>
+          <span class="di-text">
+            <span class="di-title">復元</span>
+            <span class="di-sub">バックアップから読み込む</span>
+          </span>
+          <input type="file" accept=".json" onchange="importData(this); closeMenu()" style="display:none">
+        </label>
+      </div>
+    </div>
+    <div class="logo">EMO <em>MEMORY</em></div>
+    <div style="width:36px"></div><!-- ロゴを中央に保つためのスペーサー -->
+  </div>
 </header>
 
 <nav class="bottom-nav">
@@ -709,14 +786,11 @@ const EMO = {
   "その他": { c:"#60b8d8", bg:"#eef7fb" },
 };
 
-// 水彩風丸SVGを生成 (size: px数)
 function wcDotSVG(color, size = 28) {
   const s = size;
   const r = s / 2;
-  // ランダムに見せるが再現可能なシードとしてcolorを使う
   const h = color.replace('#','');
   const n = parseInt(h.slice(0,2),16);
-  // 水彩感：複数の半透明楕円を重ねる
   const wobble = (i) => {
     const a = (i * 137.5 * Math.PI / 180);
     const d = (n % 3 + 1) * 0.06;
@@ -730,11 +804,8 @@ function wcDotSVG(color, size = 28) {
     const alpha = 0.18 + (i*0.09);
     return `<ellipse cx="${r+dx}" cy="${r+dy}" rx="${rx}" ry="${ry}" transform="rotate(${rot},${r+dx},${r+dy})" fill="${color}" opacity="${alpha}"/>`;
   }).join('');
-  // メインの丸
   const main = `<circle cx="${r}" cy="${r}" r="${r*0.72}" fill="${color}" opacity="0.82"/>`;
-  // ハイライト（白ぼかし）
   const hi = `<ellipse cx="${r*0.72}" cy="${r*0.68}" rx="${r*0.28}" ry="${r*0.18}" fill="white" opacity="0.38"/>`;
-  // 外縁のにじみ
   const edge = `<circle cx="${r}" cy="${r}" r="${r*0.82}" fill="none" stroke="${color}" stroke-width="${r*0.22}" opacity="0.12"/>`;
 
   return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
@@ -749,7 +820,6 @@ function wcDotSVG(color, size = 28) {
   </svg>`;
 }
 
-// 感情ボタンの丸を初期化
 function initEmoButtons() {
   document.querySelectorAll('.eb').forEach(btn => {
     const emo = btn.dataset.e;
@@ -758,9 +828,6 @@ function initEmoButtons() {
     if (symEl) symEl.innerHTML = wcDotSVG(EMO[emo].c, 28);
   });
 }
-
-// type: 'sunflower'|'hydrangea'|'morning_glory'|'rose'|'gerbera'|'sweetpea'|'tulip'|'cactus'|'evening_primrose'|'margaret'
-
 
 let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
 let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
@@ -912,7 +979,6 @@ function updateFlowerPanel() {
   panel.classList.add('on');
   infoBar.classList.add('on');
 
-  // 累計星数を計算（全期間）
   const totalStars = entries.filter(e => e.emo === curFilter).reduce((s,e) => s+(e.star||3), 0);
   const stage = getStageFromStars(totalStars);
   const img = getFlowerImg(curFilter, stage);
@@ -920,7 +986,6 @@ function updateFlowerPanel() {
   document.getElementById('flower-panel-img').src = img || '';
   document.getElementById('flower-star-count').textContent = `★ ${totalStars}`;
 
-  // progress bar
   const pct = Math.min(totalStars / 31 * 100, 100);
   const bar = document.getElementById('flower-progress-bar');
   bar.style.width = pct + '%';
@@ -977,7 +1042,6 @@ function openModal(id) {
   document.getElementById('m-idea').textContent = e.idea ? '💡 '+e.idea : '';
   const img = document.getElementById('m-img');
   if (e.photo) { img.src = e.photo; img.style.display = 'block'; } else img.style.display = 'none';
-  // 常に表示モードで開く
   document.getElementById('m-view-mode').style.display = '';
   document.getElementById('m-edit-mode').style.display = 'none';
   document.getElementById('overlay').classList.add('on');
@@ -1011,14 +1075,12 @@ function enterEditMode() {
   editStar = e.star || 3;
   editPhotoUrl = e.photo || null;
 
-  // 感情グリッド生成
   const grid = document.getElementById('m-emo-grid');
   grid.innerHTML = Object.keys(EMO).map(emo =>
     `<button class="eb${emo===editEmo?' on':''}" data-e="${emo}" onclick="pickEditEmo(this)">
       <span class="sym">${wcDotSVG(EMO[emo].c,28)}</span><span class="lbl">${emo}</span>
     </button>`
   ).join('');
-  // on状態のスタイル適用
   grid.querySelectorAll('.eb').forEach(btn => {
     const emo = btn.dataset.e;
     if (btn.classList.contains('on')) {
@@ -1208,7 +1270,6 @@ function drawGarden() {
     </div>`;
   }).join('');
 
-  // labels bar（枠外）
   const labelsBar = document.getElementById('garden-labels-bar');
   if (labelsBar) {
     labelsBar.innerHTML = Object.keys(EMO).map(emo => {
@@ -1219,6 +1280,111 @@ function drawGarden() {
       </div>`;
     }).join('');
   }
+}
+
+/* ────────── ハンバーガーメニュー ────────── */
+function toggleMenu() {
+  const btn = document.getElementById('menu-btn');
+  const dd  = document.getElementById('dropdown');
+  const isOpen = dd.classList.contains('open');
+  if (isOpen) { closeMenu(); } else {
+    btn.classList.add('open');
+    dd.classList.add('open');
+    // 外クリックで閉じる
+    setTimeout(() => document.addEventListener('click', outsideMenuClick), 0);
+  }
+}
+function closeMenu() {
+  document.getElementById('menu-btn').classList.remove('open');
+  document.getElementById('dropdown').classList.remove('open');
+  document.removeEventListener('click', outsideMenuClick);
+}
+function outsideMenuClick(e) {
+  if (!document.getElementById('menu-btn').contains(e.target) &&
+      !document.getElementById('dropdown').contains(e.target)) {
+    closeMenu();
+  }
+}
+
+/* ────────── データ移行（エクスポート／インポート） ────────── */
+function exportData() {
+  try {
+    const data = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      entries: JSON.parse(localStorage.getItem('kn2-entries') || '[]'),
+    };
+
+    // 容量チェック（50MB超の場合は写真を除外して保存）
+    const jsonStr = JSON.stringify(data);
+    const mb = (new Blob([jsonStr]).size / 1024 / 1024).toFixed(1);
+    let photoStripped = false;
+
+    let exportData = data;
+    if (parseFloat(mb) > 50) {
+      exportData = {
+        ...data,
+        entries: data.entries.map(e => ({ ...e, photo: null })),
+        _photoStripped: true,
+      };
+      photoStripped = true;
+    }
+
+    const finalStr = JSON.stringify(exportData);
+    const blob = new Blob([finalStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    a.href = url;
+    a.download = `emomemory_backup_${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+
+    const finalMb = (new Blob([finalStr]).size / 1024 / 1024).toFixed(1);
+    if (photoStripped) {
+      showToast(`📦 保存しました（写真除外・${finalMb}MB）`);
+    } else {
+      showToast(`📦 保存しました（${exportData.entries.length}件・${finalMb}MB）`);
+    }
+  } catch(e) {
+    showToast('❌ 保存に失敗: ' + e.message);
+  }
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.version || !Array.isArray(data.entries)) {
+        showToast('❌ ファイルの形式が正しくありません');
+        return;
+      }
+      // 既存データとIDで重複排除してマージ（古いデータを新しいデータで上書きしない）
+      const existing = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
+      const existingIds = new Set(existing.map(e => e.id));
+      const newEntries = data.entries.filter(e => !existingIds.has(e.id));
+      const merged = [...existing, ...newEntries]
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      localStorage.setItem('kn2-entries', JSON.stringify(merged));
+      entries = merged;
+
+      renderList();
+      showToast(`✓ 復元しました（新規 ${newEntries.length}件追加）`);
+      if (data._photoStripped) {
+        setTimeout(() => showToast('⚠ このバックアップに写真データはありません'), 2600);
+      }
+    } catch(e) {
+      showToast('❌ 読み込みエラー: ' + e.message);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
 }
 </script>
 
