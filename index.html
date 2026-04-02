@@ -257,6 +257,28 @@ textarea::placeholder { color: #c8baaa; }
 }
 .save-btn:hover { transform: translateY(-2px); box-shadow: 0 7px 22px rgba(232,136,58,.38); }
 
+/* ── Search Bar ── */
+.search-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--paper); border-radius: 14px; padding: 8px 12px;
+  box-shadow: 0 2px 8px var(--shadow); margin-bottom: 8px;
+  border: 1.5px solid var(--border); transition: border-color .2s;
+}
+.search-row:focus-within { border-color: #e8883a; }
+.search-icon { font-size: 14px; flex-shrink: 0; color: var(--text-light); }
+.search-input {
+  flex: 1; border: none; background: none; font-family: inherit;
+  font-size: 13px; color: var(--text); outline: none;
+}
+.search-input::placeholder { color: #c8baaa; }
+.search-clear {
+  background: var(--border); border: none; border-radius: 50%;
+  width: 18px; height: 18px; cursor: pointer; font-size: 9px;
+  display: none; align-items: center; justify-content: center;
+  color: var(--text-mid); line-height: 1; flex-shrink: 0;
+}
+.search-clear.on { display: flex; }
+
 /* ── Date Jump Row ── */
 .date-jump-row {
   display: flex; align-items: center; gap: 6px;
@@ -592,6 +614,12 @@ textarea::placeholder { color: #c8baaa; }
     </div>
     <!-- Filter chips -->
     <div class="filter-row" id="filters"></div>
+    <!-- Search -->
+    <div class="search-row">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search-input" type="text" placeholder="メモ・アイデアを検索…" oninput="onSearch(this)">
+      <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+    </div>
     <!-- Date jump -->
     <div class="date-jump-row">
       <div class="cal-btn">
@@ -629,7 +657,7 @@ textarea::placeholder { color: #c8baaa; }
       <div class="kpis">
         <div class="kpi"><div class="kpi-n" id="st-total">0</div><div class="kpi-s">合計記録</div></div>
         <div class="kpi"><div class="kpi-n" id="st-week">0</div><div class="kpi-s">今週</div></div>
-        <div class="kpi"><div class="kpi-n" id="st-avgstar">—</div><div class="kpi-s">平均の強さ</div></div>
+        <div class="kpi"><div class="kpi-n" id="st-streak">0</div><div class="kpi-s">連続記録（日）</div></div>
         <div class="kpi"><div class="kpi-n" id="st-top">—</div><div class="kpi-s">最多感情</div></div>
       </div>
     </div>
@@ -831,7 +859,7 @@ function initEmoButtons() {
 
 let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
 let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
-let dateJumpDate = null;
+let dateJumpDate = null, searchQuery = '';
 
 function onDateJump(input) {
   if (!input.value) return;
@@ -1005,6 +1033,13 @@ function renderList() {
   if (dateJumpDate) {
     filtered = filtered.filter(e => e.date.slice(0,10) === dateJumpDate);
   }
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(e =>
+      (e.text && e.text.toLowerCase().includes(q)) ||
+      (e.idea && e.idea.toLowerCase().includes(q))
+    );
+  }
   if (!filtered.length) {
     list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
     return;
@@ -1167,6 +1202,46 @@ function saveEdit() {
   showToast('更新しました ✓');
 }
 
+function onSearch(input) {
+  searchQuery = input.value.trim();
+  document.getElementById('search-clear').classList.toggle('on', searchQuery.length > 0);
+  renderList();
+}
+function clearSearch() {
+  searchQuery = '';
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-clear').classList.remove('on');
+  renderList();
+}
+
+function calcStreak() {
+  if (!entries.length) return 0;
+  const days = new Set(entries.map(e => e.date.slice(0,10)));
+  const today = new Date();
+  let streak = 0;
+  for (let i = 0; i < 3650; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = toDateVal(d);
+    if (days.has(key)) { streak++; }
+    else if (i === 0) { break; } // 今日記録なし → 昨日から遡って数える
+    else break;
+  }
+  // 今日記録なければ昨日から数える
+  if (streak === 0) {
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    for (let i = 0; i < 3650; i++) {
+      const d = new Date(yesterday);
+      d.setDate(d.getDate() - i);
+      const key = toDateVal(d);
+      if (days.has(key)) streak++;
+      else break;
+    }
+  }
+  return streak;
+}
+
 function renderStats() {
   drawGarden();
   const total = entries.length;
@@ -1174,10 +1249,7 @@ function renderStats() {
   const now = new Date(), wa = new Date(now - 7*24*3600*1000);
   const thisWeek = entries.filter(e => new Date(e.date) > wa);
   document.getElementById('st-week').textContent = thisWeek.length;
-  if (total) {
-    const avg = (entries.reduce((s,e) => s+(e.star||3), 0) / total).toFixed(1);
-    document.getElementById('st-avgstar').textContent = avg;
-  }
+  document.getElementById('st-streak').textContent = calcStreak();
   const counts = {};
   Object.keys(EMO).forEach(k => counts[k] = 0);
   entries.forEach(e => counts[e.emo] = (counts[e.emo]||0)+1);
