@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>EMO MEMORY</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#e8883a">
@@ -600,6 +600,7 @@ textarea::placeholder { color: #c8baaa; }
         </div>
       </div>
     </div>
+    <button id="photo-remove-btn" onclick="removePhoto()" style="display:none;margin-top:8px;width:100%;padding:8px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text-light);font-family:inherit;font-size:12px;cursor:pointer;transition:all .18s" onmouseover="this.style.borderColor='#e05858';this.style.color='#e05858'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-light)'">🗑 写真を削除</button>
     <button class="save-btn" onclick="saveEntry()">✦ 感情を記録する</button>
   </div>
 
@@ -734,6 +735,7 @@ textarea::placeholder { color: #c8baaa; }
           <div class="ph-hint">タップして変更</div>
         </div>
       </div>
+      <button id="m-photo-remove-btn" onclick="removeEditPhoto()" style="display:none;margin-bottom:10px;width:100%;padding:8px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text-light);font-family:inherit;font-size:12px;cursor:pointer;transition:all .18s" onmouseover="this.style.borderColor='#e05858';this.style.color='#e05858'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-light)'">🗑 写真を削除</button>
 
       <div class="modal-action-row">
         <button class="modal-del-btn" onclick="exitEditMode()">キャンセル</button>
@@ -952,8 +954,17 @@ function loadPhoto(input) {
     const p = document.getElementById('photo-preview');
     p.src = photoUrl; p.style.display = 'block';
     document.getElementById('pph').style.display = 'none';
+    document.getElementById('photo-remove-btn').style.display = 'block';
   };
   r.readAsDataURL(f);
+}
+function removePhoto() {
+  photoUrl = null;
+  document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('photo-preview').src = '';
+  document.getElementById('pph').style.display = 'block';
+  document.getElementById('pfile').value = '';
+  document.getElementById('photo-remove-btn').style.display = 'none';
 }
 
 function saveEntry() {
@@ -971,11 +982,13 @@ function saveEntry() {
   document.getElementById('t-memo').value = '';
   document.getElementById('t-idea').value = '';
   document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('photo-preview').src = '';
   document.getElementById('pph').style.display = 'block';
   document.getElementById('pfile').value = '';
+  document.getElementById('photo-remove-btn').style.display = 'none';
   selEmo = null; photoUrl = null; selStar = 3;
   renderStars(3, null);
-  showToast('記録しました ✓');
+  showToast('✓ 記録しました！');
 }
 
 function buildFilters() {
@@ -1130,8 +1143,8 @@ function enterEditMode() {
   document.getElementById('m-idea-edit').value = e.idea || '';
 
   const ph = document.getElementById('m-photo-edit');
-  if (editPhotoUrl) { ph.src = editPhotoUrl; ph.style.display = 'block'; document.getElementById('m-pph').style.display = 'none'; }
-  else { ph.style.display = 'none'; document.getElementById('m-pph').style.display = ''; }
+  if (editPhotoUrl) { ph.src = editPhotoUrl; ph.style.display = 'block'; document.getElementById('m-pph').style.display = 'none'; document.getElementById('m-photo-remove-btn').style.display = 'block'; }
+  else { ph.style.display = 'none'; document.getElementById('m-pph').style.display = ''; document.getElementById('m-photo-remove-btn').style.display = 'none'; }
 
   document.getElementById('m-view-mode').style.display = 'none';
   document.getElementById('m-edit-mode').style.display = '';
@@ -1178,8 +1191,18 @@ function loadEditPhoto(input) {
     const ph = document.getElementById('m-photo-edit');
     ph.src = editPhotoUrl; ph.style.display = 'block';
     document.getElementById('m-pph').style.display = 'none';
+    document.getElementById('m-photo-remove-btn').style.display = 'block';
   };
   r.readAsDataURL(f);
+}
+function removeEditPhoto() {
+  editPhotoUrl = null;
+  const ph = document.getElementById('m-photo-edit');
+  ph.style.display = 'none'; ph.src = '';
+  document.getElementById('m-pph').style.display = '';
+  document.getElementById('m-pfile').value = '';
+  document.getElementById('m-photo-remove-btn').style.display = 'none';
+}
 }
 
 function saveEdit() {
