@@ -707,7 +707,10 @@ textarea::placeholder { color: #c8baaa; }
 
     <!-- 編集モード -->
     <div id="m-edit-mode" style="display:none">
-      <div class="medit-section-label">感情</div>
+      <div class="medit-section-label">✏ メモ</div>
+      <textarea id="m-memo-edit" rows="4"></textarea>
+
+      <div class="medit-section-label" style="margin-top:12px">感情</div>
       <div class="emo-grid r5 medit-emo-grid" id="m-emo-grid"></div>
 
       <div class="medit-section-label" style="margin-top:12px">★ 強さ</div>
@@ -718,9 +721,6 @@ textarea::placeholder { color: #c8baaa; }
         <button class="star-btn" onclick="pickEditStar(4)">★</button>
         <button class="star-btn" onclick="pickEditStar(5)">★</button>
       </div>
-
-      <div class="medit-section-label" style="margin-top:12px">✏ メモ</div>
-      <textarea id="m-memo-edit" rows="4"></textarea>
 
       <div class="medit-section-label" style="margin-top:10px">💡 アイデアの種</div>
       <textarea id="m-idea-edit" rows="2"></textarea>
