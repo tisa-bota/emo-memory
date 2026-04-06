@@ -1,0 +1,22 @@
+{
+  "name": "EMO MEMORY",
+  "short_name": "EMO MEMORY",
+  "description": "感情を記録して、自分の好みやひらめきを発見するアプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7f4ef",
+  "theme_color": "#e8883a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
