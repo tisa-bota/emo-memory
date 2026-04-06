@@ -972,6 +972,7 @@ function saveEntry() {
   if (!selEmo) { showToast('感情を選んでね 💭'); return; }
   const text = document.getElementById('t-memo').value.trim();
   if (!text) { showToast('気持ちをメモしてね ✏'); return; }
+  window._saving = true;
   const entry = {
     id: Date.now(), emo: selEmo, star: selStar,
     text, idea: document.getElementById('t-idea').value.trim(),
@@ -990,6 +991,7 @@ function saveEntry() {
   selEmo = null; photoUrl = null; selStar = 3;
   renderStars(3, null);
   showToast('✓ 記録しました！');
+  setTimeout(() => { window._saving = false; }, 3000);
 }
 
 function buildFilters() {
@@ -1495,8 +1497,8 @@ if ('serviceWorker' in navigator) {
           const newSW = reg.installing;
           newSW.addEventListener('statechange', () => {
             if (newSW.state === 'activated') {
-              // 新しいSWが有効化されたらページをリロード
-              window.location.reload();
+              // 操作中でなければリロード
+              if (!window._saving) window.location.reload();
             }
           });
         });
@@ -1505,7 +1507,8 @@ if ('serviceWorker' in navigator) {
 
     // controllerが切り替わった（別タブで更新済みSWが有効化）場合もリロード
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload();
+      // 操作中でなければリロード
+      if (!window._saving) window.location.reload();
     });
   });
 }
