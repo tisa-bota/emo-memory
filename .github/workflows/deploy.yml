@@ -1,0 +1,25 @@
+name: Deploy with cache busting
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject build date
+        run: |
+          DATE=$(date +%Y%m%d%H%M)
+          # sw.js の CACHE_VERSION を今日の日時に自動更新
+          sed -i "s/const CACHE_VERSION = '[^']*'/const CACHE_VERSION = '$DATE'/" sw.js
+          # index.html の ?v=... も同じ日時に自動更新
+          sed -i "s/sw\.js?v=[^'\"']*/sw.js?v=$DATE/" index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
