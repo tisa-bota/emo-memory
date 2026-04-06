@@ -980,6 +980,7 @@ function saveEntry() {
   };
   entries.unshift(entry);
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  saveToIDB(entries);
   document.querySelectorAll('.eb').forEach(b => b.classList.remove('on'));
   document.getElementById('t-memo').value = '';
   document.getElementById('t-idea').value = '';
@@ -1110,6 +1111,7 @@ function deleteEntry() {
 function deleteConfirmed() {
   entries = entries.filter(x => x.id !== modalEntryId);
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  saveToIDB(entries);
   document.getElementById('m-delete-confirm').style.display = 'none';
   document.getElementById('overlay').classList.remove('on');
   updateFlowerPanel();
@@ -1221,6 +1223,7 @@ function saveEdit() {
     photo: editPhotoUrl,
   };
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  saveToIDB(entries);
   document.getElementById('overlay').classList.remove('on');
   updateFlowerPanel();
   renderList();
@@ -1469,6 +1472,7 @@ function importData(input) {
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 
       localStorage.setItem('kn2-entries', JSON.stringify(merged));
+      saveToIDB(merged);
       entries = merged;
 
       renderList();
@@ -1486,29 +1490,86 @@ function importData(input) {
 </script>
 
 <script>
+// ── IndexedDB バックアップ（localStorageが消えた時の保険） ──
+const IDB_NAME = 'emo-memory-db';
+const IDB_STORE = 'entries';
+
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveToIDB(data) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(JSON.stringify(data), 'kn2-entries');
+  } catch(e) { console.warn('[IDB] save error', e); }
+}
+
+async function loadFromIDB() {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get('kn2-entries');
+      req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : null);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+
+// 起動時：localStorageが空でもIndexedDBにデータがあれば復元
+(async function restoreIfNeeded() {
+  const lsRaw = localStorage.getItem('kn2-entries');
+  const lsData = lsRaw ? JSON.parse(lsRaw) : [];
+  if (lsData.length === 0) {
+    const idbData = await loadFromIDB();
+    if (idbData && idbData.length > 0) {
+      localStorage.setItem('kn2-entries', JSON.stringify(idbData));
+      entries = idbData;
+      console.log('[IDB] localStorageへ復元:', idbData.length, '件');
+      // 画面を再描画
+      if (typeof renderList === 'function') renderList();
+      if (typeof renderStats === 'function') {
+        // STATSタブが表示中なら再描画
+        if (document.getElementById('s-stats')?.classList.contains('on')) renderStats();
+      }
+    }
+  }
+})();
+
+// ── Service Worker 登録（安全版） ──
 if ('serviceWorker' in navigator) {
+  // ページロード直後はリロードをブロック（3秒間）
+  window._justLoaded = true;
+  setTimeout(() => { window._justLoaded = false; }, 3000);
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js?v=20260406')
       .then(reg => {
         console.log('[SW] 登録成功:', reg.scope);
-
-        // 新しいSWが待機状態になったら即座に有効化を促す
         reg.addEventListener('updatefound', () => {
           const newSW = reg.installing;
           newSW.addEventListener('statechange', () => {
-            if (newSW.state === 'activated') {
-              // 操作中でなければリロード
-              if (!window._saving) window.location.reload();
+            if (newSW.state === 'activated' && !window._justLoaded && !window._saving) {
+              window.location.reload();
             }
           });
         });
       })
       .catch(err => console.warn('[SW] 登録失敗:', err));
 
-    // controllerが切り替わった（別タブで更新済みSWが有効化）場合もリロード
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      // 操作中でなければリロード
-      if (!window._saving) window.location.reload();
+      if (!window._justLoaded && !window._saving) {
+        window.location.reload();
+      }
     });
   });
 }
