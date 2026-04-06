@@ -1487,8 +1487,26 @@ function importData(input) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js?v=20260406')
-      .then(reg => console.log('[SW] 登録成功:', reg.scope))
+      .then(reg => {
+        console.log('[SW] 登録成功:', reg.scope);
+
+        // 新しいSWが待機状態になったら即座に有効化を促す
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          newSW.addEventListener('statechange', () => {
+            if (newSW.state === 'activated') {
+              // 新しいSWが有効化されたらページをリロード
+              window.location.reload();
+            }
+          });
+        });
+      })
       .catch(err => console.warn('[SW] 登録失敗:', err));
+
+    // controllerが切り替わった（別タブで更新済みSWが有効化）場合もリロード
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
   });
 }
 </script>
