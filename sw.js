@@ -1,5 +1,5 @@
 // デプロイ時にこの日付だけ更新すればOK（sw.js自体のバージョンは不要）
-const CACHE_VERSION = '202604060612';
+const CACHE_VERSION = '202604060624';
 const CACHE_NAME = 'emo-memory-' + CACHE_VERSION;
 
 const STATIC_ASSETS = [
