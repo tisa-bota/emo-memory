@@ -506,7 +506,7 @@ textarea::placeholder { color: #c8baaa; }
           <span class="di-icon">📦</span>
           <span class="di-text">
             <span class="di-title">データ保存</span>
-            <span class="di-sub">バックアップファイルを作成</span>
+            <span class="di-sub">ZIP形式（写真込み）で保存</span>
           </span>
         </button>
         <div class="dropdown-sep"></div>
@@ -516,7 +516,7 @@ textarea::placeholder { color: #c8baaa; }
             <span class="di-title">復元</span>
             <span class="di-sub">バックアップから読み込む</span>
           </span>
-          <input type="file" accept=".json" onchange="importData(this); closeMenu()" style="display:none">
+          <input type="file" accept=".zip,.json" onchange="importData(this); closeMenu()" style="display:none">
         </label>
       </div>
     </div>
@@ -750,6 +750,158 @@ textarea::placeholder { color: #c8baaa; }
 
 <script>
 
+// ── IndexedDB（テキスト entries + 写真 photos） ──
+const IDB_NAME  = 'emo-memory-db';
+const IDB_STORE = 'entries';
+const IDB_PHOTOS = 'photos';
+
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 2); // v2: photosストア追加
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE))  db.createObjectStore(IDB_STORE);
+      if (!db.objectStoreNames.contains(IDB_PHOTOS)) db.createObjectStore(IDB_PHOTOS);
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveToIDB(data) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(JSON.stringify(data), 'kn2-entries');
+  } catch(e) { console.warn('[IDB] save error', e); }
+}
+
+async function loadFromIDB() {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get('kn2-entries');
+      req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : null);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+
+// 写真を photos ストアに保存（キー = entry.id）
+async function savePhotoToIDB(entryId, base64) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_PHOTOS, 'readwrite');
+    tx.objectStore(IDB_PHOTOS).put(base64, entryId);
+  } catch(e) { console.warn('[IDB] photo save error', e); }
+}
+
+// 写真を photos ストアから取得
+async function loadPhotoFromIDB(entryId) {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_PHOTOS, 'readonly');
+      const req = tx.objectStore(IDB_PHOTOS).get(entryId);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+
+// 写真を photos ストアから削除
+async function deletePhotoFromIDB(entryId) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_PHOTOS, 'readwrite');
+    tx.objectStore(IDB_PHOTOS).delete(entryId);
+  } catch(e) { console.warn('[IDB] photo delete error', e); }
+}
+
+// 全写真を取得（バックアップ用）{ id: base64, ... }
+async function loadAllPhotosFromIDB() {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_PHOTOS, 'readonly');
+      const req = tx.objectStore(IDB_PHOTOS).getAll();
+      const keys = tx.objectStore(IDB_PHOTOS).getAllKeys();
+      let allData = {}, allKeys = [];
+      keys.onsuccess = () => { allKeys = keys.result; };
+      req.onsuccess = () => {
+        req.result.forEach((v, i) => { allData[allKeys[i]] = v; });
+        resolve(allData);
+      };
+      req.onerror = () => resolve({});
+    });
+  } catch(e) { return {}; }
+}
+
+// 旧データ移行：entry.photo が残っていたら photosストアへ移動
+async function migratePhotos() {
+  let changed = false;
+  for (const entry of entries) {
+    if (entry.photo) {
+      await savePhotoToIDB(entry.id, entry.photo);
+      entry.photo = null;
+      changed = true;
+    }
+  }
+  if (changed) {
+    localStorage.setItem('kn2-entries', JSON.stringify(entries));
+    await saveToIDB(entries);
+    console.log('[IDB] 旧写真データを photosストアへ移行完了');
+  }
+}
+
+// 起動時：localStorageが空でもIndexedDBにデータがあれば復元、旧写真も移行
+(async function restoreIfNeeded() {
+  const lsRaw = localStorage.getItem('kn2-entries');
+  const lsData = lsRaw ? JSON.parse(lsRaw) : [];
+  if (lsData.length === 0) {
+    const idbData = await loadFromIDB();
+    if (idbData && idbData.length > 0) {
+      localStorage.setItem('kn2-entries', JSON.stringify(idbData));
+      entries = idbData;
+      console.log('[IDB] localStorageへ復元:', idbData.length, '件');
+      if (typeof renderList === 'function') renderList();
+      if (document.getElementById('s-stats')?.classList.contains('on') && typeof renderStats === 'function') renderStats();
+    }
+  }
+  // 旧データ（entry.photo に Base64が残っているもの）を photosストアへ移行
+  await migratePhotos();
+})();
+
+// ── Service Worker 登録（安全版） ──
+if ('serviceWorker' in navigator) {
+  // ページロード直後はリロードをブロック（3秒間）
+  window._justLoaded = true;
+  setTimeout(() => { window._justLoaded = false; }, 3000);
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js?v=20260406')
+      .then(reg => {
+        console.log('[SW] 登録成功:', reg.scope);
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          newSW.addEventListener('statechange', () => {
+            if (newSW.state === 'activated' && !window._justLoaded && !window._saving) {
+              window.location.reload();
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[SW] 登録失敗:', err));
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!window._justLoaded && !window._saving) {
+        window.location.reload();
+      }
+    });
+  });
+}
+
 const BG_LIST_1 = "images/bg_1.png";
 const FLOWER_IMGS = {
   "種_0": "images/flowers_400/seeds_0.png",
@@ -949,15 +1101,28 @@ function renderStars(n, color) {
 
 function loadPhoto(input) {
   const f = input.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = e => {
-    photoUrl = e.target.result;
-    const p = document.getElementById('photo-preview');
-    p.src = photoUrl; p.style.display = 'block';
-    document.getElementById('pph').style.display = 'none';
-    document.getElementById('photo-remove-btn').style.display = 'block';
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = e => {
+    img.onload = () => {
+      const MAX = 1280;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      photoUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const p = document.getElementById('photo-preview');
+      p.src = photoUrl; p.style.display = 'block';
+      document.getElementById('pph').style.display = 'none';
+      document.getElementById('photo-remove-btn').style.display = 'block';
+    };
+    img.src = e.target.result;
   };
-  r.readAsDataURL(f);
+  reader.readAsDataURL(f);
 }
 function removePhoto() {
   photoUrl = null;
@@ -968,7 +1133,7 @@ function removePhoto() {
   document.getElementById('photo-remove-btn').style.display = 'none';
 }
 
-function saveEntry() {
+async function saveEntry() {
   if (!selEmo) { showToast('感情を選んでね 💭'); return; }
   const text = document.getElementById('t-memo').value.trim();
   if (!text) { showToast('気持ちをメモしてね ✏'); return; }
@@ -976,8 +1141,12 @@ function saveEntry() {
   const entry = {
     id: Date.now(), emo: selEmo, star: selStar,
     text, idea: document.getElementById('t-idea').value.trim(),
-    photo: photoUrl, date: getEntryDate()
+    photo: null, date: getEntryDate()  // photoはIDB管理
   };
+  // 写真があれば photosストアへ
+  if (photoUrl) {
+    await savePhotoToIDB(entry.id, photoUrl);
+  }
   entries.unshift(entry);
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   saveToIDB(entries);
@@ -991,6 +1160,7 @@ function saveEntry() {
   document.getElementById('photo-remove-btn').style.display = 'none';
   selEmo = null; photoUrl = null; selStar = 3;
   renderStars(3, null);
+  renderList();
   showToast('✓ 記録しました！');
   setTimeout(() => { window._saving = false; }, 3000);
 }
@@ -1043,7 +1213,7 @@ function starHTML(n, color) {
   ).join('');
 }
 
-function renderList() {
+async function renderList() {
   buildFilters();
   const list = document.getElementById('elist');
   let filtered = curFilter === 'all' ? entries : entries.filter(e => e.emo === curFilter);
@@ -1061,9 +1231,16 @@ function renderList() {
     list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
     return;
   }
+  // 写真を一括取得
+  const photoMap = {};
+  await Promise.all(filtered.map(async e => {
+    const ph = await loadPhotoFromIDB(e.id);
+    if (ph) photoMap[e.id] = ph;
+  }));
   list.innerHTML = filtered.map(e => {
     const d = new Date(e.date);
     const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
+    const thumb = photoMap[e.id] ? `<img class="ecard-thumb" src="${photoMap[e.id]}">` : '';
     return `<div class="ecard" style="border-left-color:${EMO[e.emo].c}" onclick="openModal(${e.id})">
       <div class="ecard-top">
         <span class="ecard-sym sym-dot" style="width:20px;height:20px">${wcDotSVG(EMO[e.emo].c,20)}</span>
@@ -1072,7 +1249,7 @@ function renderList() {
         <span class="ecard-date">${ds}</span>
       </div>
       <div class="ecard-text">${e.text}</div>
-      ${e.photo ? `<img class="ecard-thumb" src="${e.photo}">` : ''}
+      ${thumb}
     </div>`;
   }).join('');
 }
@@ -1080,7 +1257,7 @@ function renderList() {
 let modalEntryId = null;
 let editEmo = null, editStar = 3, editPhotoUrl = null;
 
-function openModal(id) {
+async function openModal(id) {
   modalEntryId = id;
   const e = entries.find(x => x.id === id); if (!e) return;
   const d = new Date(e.date);
@@ -1093,9 +1270,11 @@ function openModal(id) {
   document.getElementById('m-txt').textContent = e.text;
   document.getElementById('m-idea').textContent = e.idea ? '💡 '+e.idea : '';
   const img = document.getElementById('m-img');
-  if (e.photo) { img.src = e.photo; img.style.display = 'block'; } else img.style.display = 'none';
+  const ph = await loadPhotoFromIDB(e.id);
+  if (ph) { img.src = ph; img.style.display = 'block'; } else img.style.display = 'none';
   document.getElementById('m-view-mode').style.display = '';
   document.getElementById('m-edit-mode').style.display = 'none';
+  document.getElementById('m-delete-confirm').style.display = 'none';
   document.getElementById('overlay').classList.add('on');
 }
 
@@ -1108,7 +1287,8 @@ function closeModal(e) {
 function deleteEntry() {
   document.getElementById('m-delete-confirm').style.display = '';
 }
-function deleteConfirmed() {
+async function deleteConfirmed() {
+  await deletePhotoFromIDB(modalEntryId);
   entries = entries.filter(x => x.id !== modalEntryId);
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   saveToIDB(entries);
@@ -1122,11 +1302,11 @@ function deleteCancelled() {
   document.getElementById('m-delete-confirm').style.display = 'none';
 }
 
-function enterEditMode() {
+async function enterEditMode() {
   const e = entries.find(x => x.id === modalEntryId); if (!e) return;
   editEmo = e.emo;
   editStar = e.star || 3;
-  editPhotoUrl = e.photo || null;
+  editPhotoUrl = await loadPhotoFromIDB(e.id);
 
   const grid = document.getElementById('m-emo-grid');
   grid.innerHTML = Object.keys(EMO).map(emo =>
@@ -1190,15 +1370,28 @@ function renderEditStars(n, color) {
 
 function loadEditPhoto(input) {
   const f = input.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    editPhotoUrl = ev.target.result;
-    const ph = document.getElementById('m-photo-edit');
-    ph.src = editPhotoUrl; ph.style.display = 'block';
-    document.getElementById('m-pph').style.display = 'none';
-    document.getElementById('m-photo-remove-btn').style.display = 'block';
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = e => {
+    img.onload = () => {
+      const MAX = 1280;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      editPhotoUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const ph = document.getElementById('m-photo-edit');
+      ph.src = editPhotoUrl; ph.style.display = 'block';
+      document.getElementById('m-pph').style.display = 'none';
+      document.getElementById('m-photo-remove-btn').style.display = 'block';
+    };
+    img.src = e.target.result;
   };
-  r.readAsDataURL(f);
+  reader.readAsDataURL(f);
 }
 function removeEditPhoto() {
   editPhotoUrl = null;
@@ -1209,18 +1402,24 @@ function removeEditPhoto() {
   document.getElementById('m-photo-remove-btn').style.display = 'none';
 }
 
-function saveEdit() {
+async function saveEdit() {
   const memo = document.getElementById('m-memo-edit').value.trim();
   if (!memo) { showToast('メモを入力してね ✏'); return; }
   const idx = entries.findIndex(x => x.id === modalEntryId);
   if (idx === -1) return;
+  // 写真を IDB に保存（null なら削除）
+  if (editPhotoUrl) {
+    await savePhotoToIDB(modalEntryId, editPhotoUrl);
+  } else {
+    await deletePhotoFromIDB(modalEntryId);
+  }
   entries[idx] = {
     ...entries[idx],
     emo: editEmo,
     star: editStar,
     text: memo,
     idea: document.getElementById('m-idea-edit').value.trim(),
-    photo: editPhotoUrl,
+    photo: null,  // photoはIDB管理
   };
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   saveToIDB(entries);
@@ -1406,172 +1605,145 @@ function outsideMenuClick(e) {
   }
 }
 
-/* ────────── データ移行（エクスポート／インポート） ────────── */
-function exportData() {
+/* ────────── データ移行（エクスポート／インポート・ZIP版） ────────── */
+
+// JSZip CDN をロード（初回エクスポート時のみ）
+function loadJSZip() {
+  return new Promise((resolve, reject) => {
+    if (window.JSZip) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function exportData() {
   try {
-    const data = {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      entries: JSON.parse(localStorage.getItem('kn2-entries') || '[]'),
-    };
+    showToast('📦 バックアップを準備中…');
+    await loadJSZip();
 
-    // 容量チェック（50MB超の場合は写真を除外して保存）
-    const jsonStr = JSON.stringify(data);
-    const mb = (new Blob([jsonStr]).size / 1024 / 1024).toFixed(1);
-    let photoStripped = false;
+    const zip = new JSZip();
+    const photosFolder = zip.folder('photos');
 
-    let exportData = data;
-    if (parseFloat(mb) > 50) {
-      exportData = {
-        ...data,
-        entries: data.entries.map(e => ({ ...e, photo: null })),
-        _photoStripped: true,
-      };
-      photoStripped = true;
+    // entries.json（photo=null のまま保存）
+    const exportEntries = entries.map(e => ({ ...e, photo: null }));
+    const jsonStr = JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), entries: exportEntries }, null, 2);
+    zip.file('entries.json', jsonStr);
+
+    // 写真を全件取得して photos/ に追加
+    const allPhotos = await loadAllPhotosFromIDB();
+    let photoCount = 0;
+    for (const [idStr, base64] of Object.entries(allPhotos)) {
+      // "data:image/jpeg;base64,XXXX" → バイナリ
+      const base64Data = base64.split(',')[1];
+      if (base64Data) {
+        photosFolder.file(`${idStr}.jpg`, base64Data, { base64: true });
+        photoCount++;
+      }
     }
 
-    const finalStr = JSON.stringify(exportData);
-    const blob = new Blob([finalStr], { type: 'application/json' });
+    // ZIP 生成
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const d = new Date();
     const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
     a.href = url;
-    a.download = `emomemory_backup_${stamp}.json`;
+    a.download = `emomemory_backup_${stamp}.zip`;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
 
-    const finalMb = (new Blob([finalStr]).size / 1024 / 1024).toFixed(1);
-    if (photoStripped) {
-      showToast(`📦 保存しました（写真除外・${finalMb}MB）`);
-    } else {
-      showToast(`📦 保存しました（${exportData.entries.length}件・${finalMb}MB）`);
-    }
+    const mb = (blob.size / 1024 / 1024).toFixed(1);
+    showToast(`📦 保存しました（${exportEntries.length}件・写真${photoCount}枚・${mb}MB）`);
   } catch(e) {
     showToast('❌ 保存に失敗: ' + e.message);
+    console.error(e);
   }
 }
 
-function importData(input) {
+async function importData(input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    try {
-      const data = JSON.parse(ev.target.result);
-      if (!data.version || !Array.isArray(data.entries)) {
-        showToast('❌ ファイルの形式が正しくありません');
-        return;
+
+  try {
+    showToast('📂 読み込み中…');
+
+    // ZIP か JSON かを判定
+    if (file.name.endsWith('.zip')) {
+      await loadJSZip();
+      const zip = await JSZip.loadAsync(file);
+
+      // entries.json を読む
+      const jsonFile = zip.file('entries.json');
+      if (!jsonFile) { showToast('❌ entries.json が見つかりません'); return; }
+      const jsonStr = await jsonFile.async('string');
+      const data = JSON.parse(jsonStr);
+      if (!Array.isArray(data.entries)) { showToast('❌ ファイルの形式が正しくありません'); return; }
+
+      // テキストデータをマージ（IDで重複排除）
+      const existing = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
+      const existingIds = new Set(existing.map(e => e.id));
+      const newEntries = data.entries.map(e => ({ ...e, photo: null })).filter(e => !existingIds.has(e.id));
+      const merged = [...existing, ...newEntries].sort((a, b) => new Date(b.date) - new Date(a.date));
+      localStorage.setItem('kn2-entries', JSON.stringify(merged));
+      await saveToIDB(merged);
+      entries = merged;
+
+      // 写真を photos/ から復元（既存IDは上書きしない）
+      let photoCount = 0;
+      const photoFiles = zip.folder('photos');
+      if (photoFiles) {
+        const db = await openIDB();
+        await Promise.all(Object.keys(zip.files).filter(n => n.startsWith('photos/') && !n.endsWith('/')).map(async name => {
+          const entryId = parseInt(name.replace('photos/', '').replace('.jpg', ''));
+          if (isNaN(entryId)) return;
+          // 既存の写真は上書きしない
+          const existing = await loadPhotoFromIDB(entryId);
+          if (existing) return;
+          const base64 = await zip.file(name).async('base64');
+          await savePhotoToIDB(entryId, 'data:image/jpeg;base64,' + base64);
+          photoCount++;
+        }));
       }
-      // 既存データとIDで重複排除してマージ（古いデータを新しいデータで上書きしない）
+
+      renderList();
+      showToast(`✓ 復元しました（新規 ${newEntries.length}件・写真 ${photoCount}枚追加）`);
+
+    } else {
+      // 旧JSON形式の互換対応
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.version || !Array.isArray(data.entries)) {
+        showToast('❌ ファイルの形式が正しくありません'); return;
+      }
       const existing = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
       const existingIds = new Set(existing.map(e => e.id));
       const newEntries = data.entries.filter(e => !existingIds.has(e.id));
-      const merged = [...existing, ...newEntries]
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-
+      // 旧JSON に photo が含まれていれば IDB に移行
+      for (const e of newEntries) {
+        if (e.photo) {
+          await savePhotoToIDB(e.id, e.photo);
+          e.photo = null;
+        }
+      }
+      const merged = [...existing, ...newEntries].sort((a, b) => new Date(b.date) - new Date(a.date));
       localStorage.setItem('kn2-entries', JSON.stringify(merged));
-      saveToIDB(merged);
+      await saveToIDB(merged);
       entries = merged;
-
       renderList();
       showToast(`✓ 復元しました（新規 ${newEntries.length}件追加）`);
       if (data._photoStripped) {
         setTimeout(() => showToast('⚠ このバックアップに写真データはありません'), 2600);
       }
-    } catch(e) {
-      showToast('❌ 読み込みエラー: ' + e.message);
     }
-    input.value = '';
-  };
-  reader.readAsText(file);
-}
-</script>
-
-<script>
-// ── IndexedDB バックアップ（localStorageが消えた時の保険） ──
-const IDB_NAME = 'emo-memory-db';
-const IDB_STORE = 'entries';
-
-function openIDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_NAME, 1);
-    req.onupgradeneeded = e => {
-      e.target.result.createObjectStore(IDB_STORE);
-    };
-    req.onsuccess = e => resolve(e.target.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function saveToIDB(data) {
-  try {
-    const db = await openIDB();
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put(JSON.stringify(data), 'kn2-entries');
-  } catch(e) { console.warn('[IDB] save error', e); }
-}
-
-async function loadFromIDB() {
-  try {
-    const db = await openIDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(IDB_STORE, 'readonly');
-      const req = tx.objectStore(IDB_STORE).get('kn2-entries');
-      req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : null);
-      req.onerror = () => resolve(null);
-    });
-  } catch(e) { return null; }
-}
-
-// 起動時：localStorageが空でもIndexedDBにデータがあれば復元
-(async function restoreIfNeeded() {
-  const lsRaw = localStorage.getItem('kn2-entries');
-  const lsData = lsRaw ? JSON.parse(lsRaw) : [];
-  if (lsData.length === 0) {
-    const idbData = await loadFromIDB();
-    if (idbData && idbData.length > 0) {
-      localStorage.setItem('kn2-entries', JSON.stringify(idbData));
-      entries = idbData;
-      console.log('[IDB] localStorageへ復元:', idbData.length, '件');
-      // 画面を再描画
-      if (typeof renderList === 'function') renderList();
-      if (typeof renderStats === 'function') {
-        // STATSタブが表示中なら再描画
-        if (document.getElementById('s-stats')?.classList.contains('on')) renderStats();
-      }
-    }
+  } catch(e) {
+    showToast('❌ 読み込みエラー: ' + e.message);
+    console.error(e);
   }
-})();
-
-// ── Service Worker 登録（安全版） ──
-if ('serviceWorker' in navigator) {
-  // ページロード直後はリロードをブロック（3秒間）
-  window._justLoaded = true;
-  setTimeout(() => { window._justLoaded = false; }, 3000);
-
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=20260406')
-      .then(reg => {
-        console.log('[SW] 登録成功:', reg.scope);
-        reg.addEventListener('updatefound', () => {
-          const newSW = reg.installing;
-          newSW.addEventListener('statechange', () => {
-            if (newSW.state === 'activated' && !window._justLoaded && !window._saving) {
-              window.location.reload();
-            }
-          });
-        });
-      })
-      .catch(err => console.warn('[SW] 登録失敗:', err));
-
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!window._justLoaded && !window._saving) {
-        window.location.reload();
-      }
-    });
-  });
+  input.value = '';
 }
 </script>
 </body>
