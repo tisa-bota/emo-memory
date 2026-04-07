@@ -952,11 +952,11 @@ function getFlowerImg(emo, stage) {
   return FLOWER_IMGS[emo + '_' + stage] || null;
 }
 
-function getStageFromStars(stars) {
-  if (stars === 0)  return 0;
-  if (stars <= 10)  return 1;
-  if (stars <= 20)  return 2;
-  if (stars <= 30)  return 3;
+function getStageFromStars(count) {
+  if (count === 0)  return 0;
+  if (count <= 3)   return 1;
+  if (count <= 6)   return 2;
+  if (count <= 9)   return 3;
   return 4;
 }
 
@@ -1199,14 +1199,14 @@ function updateFlowerPanel() {
   panel.classList.add('on');
   infoBar.classList.add('on');
 
-  const totalStars = entries.filter(e => e.emo === curFilter).reduce((s,e) => s+(e.star||3), 0);
-  const stage = getStageFromStars(totalStars);
+  const totalCount = entries.filter(e => e.emo === curFilter).length;
+  const stage = getStageFromStars(totalCount);
   const img = getFlowerImg(curFilter, stage);
 
   document.getElementById('flower-panel-img').src = img || '';
-  document.getElementById('flower-star-count').textContent = `★ ${totalStars}`;
+  document.getElementById('flower-star-count').textContent = `📝 ${totalCount}回`;
 
-  const pct = Math.min(totalStars / 31 * 100, 100);
+  const pct = Math.min(totalCount / 10 * 100, 100);
   const bar = document.getElementById('flower-progress-bar');
   bar.style.width = pct + '%';
   bar.style.background = EMO[curFilter]?.c || '#e8883a';
@@ -1522,11 +1522,11 @@ function getGardenMonth() {
   return { year: d.getFullYear(), month: d.getMonth() };
 }
 
-function getGardenStage(stars) {
-  if (stars === 0)  return 0;
-  if (stars <= 10)  return 1;
-  if (stars <= 20)  return 2;
-  if (stars <= 30)  return 3;
+function getGardenStage(count) {
+  if (count === 0)  return 0;
+  if (count <= 3)   return 1;
+  if (count <= 6)   return 2;
+  if (count <= 9)   return 3;
   return 4;
 }
 
@@ -1550,12 +1550,12 @@ function drawGarden() {
   const lbl = document.getElementById('garden-month-label');
   if (lbl) lbl.textContent = `${year}年${month + 1}月`;
 
-  const starCounts = {};
-  Object.keys(EMO).forEach(k => starCounts[k] = 0);
+  const countMap = {};
+  Object.keys(EMO).forEach(k => countMap[k] = 0);
   entries.forEach(e => {
     const d = new Date(e.date);
     if (d.getFullYear() === year && d.getMonth() === month) {
-      starCounts[e.emo] = (starCounts[e.emo] || 0) + (e.star || 3);
+      countMap[e.emo] = (countMap[e.emo] || 0) + 1;
     }
   });
 
@@ -1563,10 +1563,10 @@ function drawGarden() {
   if (!container) return;
 
   container.innerHTML = Object.keys(EMO).map(emo => {
-    const stars = starCounts[emo];
-    const stage = getGardenStage(stars);
+    const cnt = countMap[emo];
+    const stage = getGardenStage(cnt);
     const imgPath = getGardenImgPath(emo, stage);
-    const starsLabel = stars > 0 ? `<div class="garden-flower-stars">${stars > 99 ? '99+' : stars}</div>` : '<div class="garden-flower-stars" style="opacity:0">0</div>';
+    const starsLabel = cnt > 0 ? `<div class="garden-flower-stars">${cnt > 99 ? '99+' : cnt}回</div>` : '<div class="garden-flower-stars" style="opacity:0">0</div>';
     return `<div class="garden-flower-slot">
       <img class="garden-flower-img" src="${imgPath}" alt="${emo}" loading="lazy">
       <div class="garden-flower-name">${emo}</div>
@@ -1577,10 +1577,10 @@ function drawGarden() {
   const labelsBar = document.getElementById('garden-labels-bar');
   if (labelsBar) {
     labelsBar.innerHTML = Object.keys(EMO).map(emo => {
-      const stars = starCounts[emo];
+      const cnt = countMap[emo];
       return `<div class="garden-label-slot">
         <div class="garden-label-name">${emo}</div>
-        <div class="garden-label-stars" style="color:${stars > 0 ? EMO[emo].c : 'var(--border)'}">${stars > 0 ? (stars > 99 ? '99+' : stars) : '—'}</div>
+        <div class="garden-label-stars" style="color:${cnt > 0 ? EMO[emo].c : 'var(--border)'}">${cnt > 0 ? (cnt > 99 ? '99+' : cnt) + '回' : '—'}</div>
       </div>`;
     }).join('');
   }
