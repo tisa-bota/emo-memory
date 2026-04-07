@@ -825,13 +825,18 @@ async function loadAllPhotosFromIDB() {
     const db = await openIDB();
     return new Promise((resolve) => {
       const tx = db.transaction(IDB_PHOTOS, 'readonly');
-      const req = tx.objectStore(IDB_PHOTOS).getAll();
-      const keys = tx.objectStore(IDB_PHOTOS).getAllKeys();
-      let allData = {}, allKeys = [];
-      keys.onsuccess = () => { allKeys = keys.result; };
-      req.onsuccess = () => {
-        req.result.forEach((v, i) => { allData[allKeys[i]] = v; });
-        resolve(allData);
+      const store = tx.objectStore(IDB_PHOTOS);
+      const allData = {};
+      // cursor で key と value を同時に取得（race condition 回避）
+      const req = store.openCursor();
+      req.onsuccess = e => {
+        const cursor = e.target.result;
+        if (cursor) {
+          allData[cursor.key] = cursor.value;
+          cursor.continue();
+        } else {
+          resolve(allData);
+        }
       };
       req.onerror = () => resolve({});
     });
@@ -1692,17 +1697,14 @@ async function importData(input) {
       await saveToIDB(merged);
       entries = merged;
 
-      // 写真を photos/ から復元（既存IDは上書きしない）
+      // 写真を photos/ から復元
       let photoCount = 0;
       const photoFiles = zip.folder('photos');
       if (photoFiles) {
-        const db = await openIDB();
         await Promise.all(Object.keys(zip.files).filter(n => n.startsWith('photos/') && !n.endsWith('/')).map(async name => {
-          const entryId = parseInt(name.replace('photos/', '').replace('.jpg', ''));
-          if (isNaN(entryId)) return;
-          // 既存の写真は上書きしない
-          const existing = await loadPhotoFromIDB(entryId);
-          if (existing) return;
+          // キーを数値に変換（entry.id = Date.now() = 数値）
+          const entryId = Number(name.replace('photos/', '').replace('.jpg', ''));
+          if (isNaN(entryId) || entryId === 0) return;
           const base64 = await zip.file(name).async('base64');
           await savePhotoToIDB(entryId, 'data:image/jpeg;base64,' + base64);
           photoCount++;
