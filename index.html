@@ -189,7 +189,7 @@ header {
 .eb[data-e="怒り"].on   .lbl { color:#e05858; }
 .eb[data-e="驚き"].on   .lbl { color:#f09040; }
 .eb[data-e="不安"].on   .lbl { color:#9070d0; }
-.eb[data-e="感動"].on   .lbl { color:#f070a8; }
+.eb[data-e="楽しい"].on   .lbl { color:#f070a8; }
 .eb[data-e="好き"].on   .lbl { color:#90c840; }
 .eb[data-e="苦手"].on   .lbl { color:#50a860; }
 .eb[data-e="願い"].on   .lbl { color:#e8d870; }
@@ -204,7 +204,7 @@ header {
 .eb[data-e="怒り"].on   { background:#fdf2f2; border-color:#e05858; }
 .eb[data-e="驚き"].on   { background:#fff6ee; border-color:#f09040; }
 .eb[data-e="不安"].on   { background:#f5f0fc; border-color:#9070d0; }
-.eb[data-e="感動"].on   { background:#fdf0f7; border-color:#f070a8; }
+.eb[data-e="楽しい"].on   { background:#fdf0f7; border-color:#f070a8; }
 .eb[data-e="好き"].on   { background:#f4fbee; border-color:#90c840; }
 .eb[data-e="苦手"].on   { background:#eef8f0; border-color:#50a860; }
 .eb[data-e="願い"].on   { background:#fdfbee; border-color:#e8d870; }
@@ -308,7 +308,7 @@ textarea::placeholder { color: #c8baaa; }
 .chip[data-f="怒り"].on   { background:#fdf2f2; color:#e05858; border-color:#e05858; }
 .chip[data-f="驚き"].on   { background:#fff6ee; color:#f09040; border-color:#f09040; }
 .chip[data-f="不安"].on   { background:#f5f0fc; color:#9070d0; border-color:#9070d0; }
-.chip[data-f="感動"].on   { background:#fdf0f7; color:#f070a8; border-color:#f070a8; }
+.chip[data-f="楽しい"].on   { background:#fdf0f7; color:#f070a8; border-color:#f070a8; }
 .chip[data-f="好き"].on   { background:#f4fbee; color:#90c840; border-color:#90c840; }
 .chip[data-f="苦手"].on   { background:#eef8f0; color:#50a860; border-color:#50a860; }
 .chip[data-f="願い"].on   { background:#fdfbee; color:#c8b830; border-color:#c8b830; }
@@ -466,6 +466,10 @@ textarea::placeholder { color: #c8baaa; }
 .flower-progress-bar {
   height: 100%; border-radius: 6px; transition: width 0.8s cubic-bezier(.34,1.56,.64,1);
 }
+.flower-cycle-count {
+  font-family: 'Shippori Mincho', serif; font-size: 13px; color: var(--text-mid);
+  flex-shrink: 0; min-width: 40px; text-align: right;
+}
 
 /* ── Modal edit ── */
 .modal-action-row {
@@ -567,7 +571,7 @@ textarea::placeholder { color: #c8baaa; }
           <button class="eb" data-e="怒り"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">怒り</span></button>
           <button class="eb" data-e="驚き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">驚き</span></button>
           <button class="eb" data-e="不安"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">不安</span></button>
-          <button class="eb" data-e="感動"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">感動</span></button>
+          <button class="eb" data-e="楽しい"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">楽しい</span></button>
           <button class="eb" data-e="好き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">好き</span></button>
           <button class="eb" data-e="苦手"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">苦手</span></button>
           <button class="eb" data-e="願い"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">願い</span></button>
@@ -612,6 +616,7 @@ textarea::placeholder { color: #c8baaa; }
     <div class="flower-info-bar" id="flower-info-bar">
       <div class="flower-star-count" id="flower-star-count">★ 0</div>
       <div class="flower-progress"><div class="flower-progress-bar" id="flower-progress-bar"></div></div>
+      <div class="flower-cycle-count" id="flower-cycle-count"></div>
     </div>
     <!-- Filter chips -->
     <div class="filter-row" id="filters"></div>
@@ -776,6 +781,26 @@ async function saveToIDB(data) {
   } catch(e) { console.warn('[IDB] save error', e); }
 }
 
+async function saveFlowerStatsToIDB(stats) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(JSON.stringify(stats), 'kn2-flowerStats');
+  } catch(e) { console.warn('[IDB] flowerStats save error', e); }
+}
+
+async function loadFlowerStatsFromIDB() {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get('kn2-flowerStats');
+      req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : null);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+
 async function loadFromIDB() {
   try {
     const db = await openIDB();
@@ -843,6 +868,17 @@ async function loadAllPhotosFromIDB() {
   } catch(e) { return {}; }
 }
 
+// 旧データ移行：「感動」→「楽しい」へ変換
+async function migrateKandou() {
+  const changed = entries.filter(e => e.emo === '感動');
+  if (changed.length === 0) return;
+  entries = entries.map(e => e.emo === '感動' ? { ...e, emo: '楽しい' } : e);
+  localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  await saveToIDB(entries);
+  console.log(`[migrate] 「感動」→「楽しい」に変換: ${changed.length}件`);
+  showToast(`✓ 旧データを移行しました（${changed.length}件）`);
+}
+
 // 旧データ移行：entry.photo が残っていたら photosストアへ移動
 async function migratePhotos() {
   let changed = false;
@@ -874,6 +910,8 @@ async function migratePhotos() {
       if (document.getElementById('s-stats')?.classList.contains('on') && typeof renderStats === 'function') renderStats();
     }
   }
+  // 旧データ「感動」→「楽しい」へ変換
+  await migrateKandou();
   // 旧データ（entry.photo に Base64が残っているもの）を photosストアへ移行
   await migratePhotos();
 })();
@@ -926,9 +964,9 @@ const FLOWER_IMGS = {
   "驚き_2": "images/flowers_400/surprise_2.png",
   "驚き_3": "images/flowers_400/surprise_3.png",
   "驚き_4": "images/flowers_400/surprise_4.png",
-  "感動_2": "images/flowers_400/inspiration_2.png",
-  "感動_3": "images/flowers_400/inspiration_3.png",
-  "感動_4": "images/flowers_400/inspiration_4.png",
+  "楽しい_2": "images/flowers_400/inspiration_2.png",
+  "楽しい_3": "images/flowers_400/inspiration_3.png",
+  "楽しい_4": "images/flowers_400/inspiration_4.png",
   "好き_2": "images/flowers_400/love_2.png",
   "好き_3": "images/flowers_400/love_3.png",
   "好き_4": "images/flowers_400/love_4.png",
@@ -966,7 +1004,7 @@ const EMO = {
   "怒り":   { c:"#e05858", bg:"#fdf2f2" },
   "驚き":   { c:"#f09040", bg:"#fff6ee" },
   "不安":   { c:"#9070d0", bg:"#f5f0fc" },
-  "感動":   { c:"#f070a8", bg:"#fdf0f7" },
+  "楽しい": { c:"#f070a8", bg:"#fdf0f7" },
   "好き":   { c:"#90c840", bg:"#f4fbee" },
   "苦手":   { c:"#50a860", bg:"#eef8f0" },
   "願い":   { c:"#e8d870", bg:"#fdfbee" },
@@ -1020,6 +1058,7 @@ function initEmoButtons() {
 let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
 let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
 let dateJumpDate = null, searchQuery = '';
+let flowerStats = JSON.parse(localStorage.getItem('kn2-flowerStats') || '{}');
 
 function onDateJump(input) {
   if (!input.value) return;
@@ -1155,6 +1194,20 @@ async function saveEntry() {
   entries.unshift(entry);
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   saveToIDB(entries);
+
+  // 満開検知: 10回の倍数になったら cycleCount++
+  const emoCount = entries.filter(e => e.emo === selEmo).length;
+  if (emoCount > 0 && emoCount % 10 === 0) {
+    if (!flowerStats[selEmo]) flowerStats[selEmo] = { cycleCount: 0 };
+    flowerStats[selEmo].cycleCount = (flowerStats[selEmo].cycleCount || 0) + 1;
+    localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
+    saveFlowerStatsToIDB(flowerStats);
+    const bloomEmo = selEmo; // closureのためキャプチャ
+    setTimeout(() => {
+      showToast(`🌸 満開達成！ステージ ${flowerStats[bloomEmo].cycleCount} へ`);
+    }, 600);
+  }
+
   document.querySelectorAll('.eb').forEach(b => b.classList.remove('on'));
   document.getElementById('t-memo').value = '';
   document.getElementById('t-idea').value = '';
@@ -1174,7 +1227,7 @@ function buildFilters() {
   const row = document.getElementById('filters');
   const allKeys = Object.keys(EMO);
   const allBtn = `<button class="chip${curFilter==='all'?' on':''}" data-f="all" onclick="setFilter(this)">すべて</button>`;
-  const desc = `<span style="font-size:10px;color:var(--text-light);letter-spacing:0.06em;align-self:center">感情の花は強さに応じて４段階で成長します🌱→🌹</span>`;
+  const desc = `<span style="font-size:10px;color:var(--text-light);letter-spacing:0.06em;align-self:center">感情の花はメモリーの数で４段階に成長します🌱→🌹</span>`;
   const br = `<div style="flex-basis:100%;height:0"></div>`;
   const chips = allKeys.map(k => `<button class="chip${curFilter===k?' on':''}" data-f="${k}" onclick="setFilter(this)"><span class="sym-dot" style="width:12px;height:12px;vertical-align:middle;margin-right:3px">${wcDotSVG(EMO[k].c,12)}</span>${k}</button>`).join('');
   row.innerHTML = allBtn + desc + br + chips;
@@ -1206,10 +1259,36 @@ function updateFlowerPanel() {
   document.getElementById('flower-panel-img').src = img || '';
   document.getElementById('flower-star-count').textContent = `📝 ${totalCount}回`;
 
+  // cycleCount / currentCount を計算
+  const cycleCount = flowerStats[curFilter]?.cycleCount || 0;
   const pct = Math.min(totalCount / 10 * 100, 100);
   const bar = document.getElementById('flower-progress-bar');
   bar.style.width = pct + '%';
   bar.style.background = EMO[curFilter]?.c || '#e8883a';
+
+  // 🌸N本 表示
+  const cycleEl = document.getElementById('flower-cycle-count');
+  if (cycleCount > 0) {
+    cycleEl.textContent = `🌸 ${cycleCount}本`;
+  } else {
+    cycleEl.textContent = '';
+  }
+
+  // 背景画像の切り替え（周回数に応じて flowers_bg_1〜10）
+  const bgIndex = Math.min(Math.max(cycleCount, 1), 10);
+  const bgPath = `images/flowers_bg/flowers_bg_${bgIndex}.png`;
+  const testImg = new Image();
+  testImg.onload = () => {
+    panel.style.backgroundImage = `url('${bgPath}')`;
+    panel.style.backgroundSize = 'cover';
+    panel.style.backgroundPosition = 'center';
+  };
+  testImg.onerror = () => {
+    panel.style.backgroundImage = '';
+    panel.style.backgroundSize = '';
+    panel.style.backgroundPosition = '';
+  };
+  testImg.src = bgPath;
 }
 
 function starHTML(n, color) {
@@ -1533,7 +1612,7 @@ function getGardenStage(count) {
 function getGardenImgPath(emo, stage) {
   const emoKeyMap = {
     '嬉しい':'joy','悲しい':'sad','怒り':'anger','驚き':'surprise',
-    '不安':'anxiety','感動':'inspiration','好き':'love',
+    '不安':'anxiety','楽しい':'inspiration','好き':'love',
     '苦手':'dislike','願い':'wish','その他':'others'
   };
   const emoKey = emoKeyMap[emo] || emo;
@@ -1634,7 +1713,7 @@ async function exportData() {
 
     // entries.json（photo=null のまま保存）
     const exportEntries = entries.map(e => ({ ...e, photo: null }));
-    const jsonStr = JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), entries: exportEntries }, null, 2);
+    const jsonStr = JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), entries: exportEntries, flowerStats }, null, 2);
     zip.file('entries.json', jsonStr);
 
     // 写真を全件取得して photos/ に追加
@@ -1714,6 +1793,13 @@ async function importData(input) {
       renderList();
       showToast(`✓ 復元しました（新規 ${newEntries.length}件・写真 ${photoCount}枚追加）`);
 
+      // flowerStats を復元（あれば）
+      if (data.flowerStats) {
+        flowerStats = data.flowerStats;
+        localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
+        saveFlowerStatsToIDB(flowerStats);
+      }
+
     } else {
       // 旧JSON形式の互換対応
       const text = await file.text();
@@ -1737,6 +1823,11 @@ async function importData(input) {
       entries = merged;
       renderList();
       showToast(`✓ 復元しました（新規 ${newEntries.length}件追加）`);
+      if (data.flowerStats) {
+        flowerStats = data.flowerStats;
+        localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
+        saveFlowerStatsToIDB(flowerStats);
+      }
       if (data._photoStripped) {
         setTimeout(() => showToast('⚠ このバックアップに写真データはありません'), 2600);
       }
