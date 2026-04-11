@@ -1090,6 +1090,7 @@ function clearDateJump() {
   renderStars(selStar, null);
   buildFilters();
   initEmoButtons();
+  renderList();  // 初回ロード時にFLOWERSタブの一覧を生成しておく
 })();
 
 function toDateVal(d) {
@@ -1120,7 +1121,7 @@ function switchTab(id, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
   document.getElementById('s-'+id).classList.add('on');
   btn.classList.add('on');
-  if (id === 'list') renderList();
+  if (id === 'list') { updateFlowerPanel(); renderList(); }
   if (id === 'stats') renderStats();
 }
 
