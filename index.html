@@ -452,7 +452,7 @@ textarea::placeholder { color: #c8baaa; }
 .flower-info-bar {
   display: none; align-items: center; gap: 10px;
   background: var(--paper); border-radius: 16px;
-  padding: 8px 16px 10px; margin-bottom: 12px;
+  padding: 8px 16px 10px;
   box-shadow: 0 4px 10px var(--shadow);
 }
 .flower-info-bar.on { display: flex; margin-bottom: 12px; }
@@ -1059,6 +1059,7 @@ let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
 let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
 let dateJumpDate = null, searchQuery = '';
 let flowerStats = JSON.parse(localStorage.getItem('kn2-flowerStats') || '{}');
+let _renderGen = 0;  // renderList() の競合防止用世代番号
 
 function onDateJump(input) {
   if (!input.value) return;
@@ -1234,9 +1235,11 @@ function buildFilters() {
 }
 
 function setFilter(btn) {
-  document.querySelectorAll('.chip').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  curFilter = btn.dataset.f;
+  const f = btn.dataset.f;
+  curFilter = f;
+  document.querySelectorAll('#filters .chip').forEach(b => {
+    b.classList.toggle('on', b.dataset.f === f);
+  });
   updateFlowerPanel();
   renderList();
 }
@@ -1298,9 +1301,10 @@ function starHTML(n, color) {
 }
 
 async function renderList() {
-  buildFilters();
+  const gen = ++_renderGen;  // この呼び出しの世代番号を取得
   const list = document.getElementById('elist');
-  let filtered = curFilter === 'all' ? entries : entries.filter(e => e.emo === curFilter);
+  const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+  let filtered = curFilter === 'all' ? sorted : sorted.filter(e => e.emo === curFilter);
   if (dateJumpDate) {
     filtered = filtered.filter(e => e.date.slice(0,10) === dateJumpDate);
   }
@@ -1312,6 +1316,7 @@ async function renderList() {
     );
   }
   if (!filtered.length) {
+    if (gen !== _renderGen) return;  // 古い世代なら反映しない
     list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
     return;
   }
@@ -1321,6 +1326,7 @@ async function renderList() {
     const ph = await loadPhotoFromIDB(e.id);
     if (ph) photoMap[e.id] = ph;
   }));
+  if (gen !== _renderGen) return;  // await 後に世代が変わっていたら反映しない
   list.innerHTML = filtered.map(e => {
     const d = new Date(e.date);
     const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
