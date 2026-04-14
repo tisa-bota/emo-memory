@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>EMO MEMORY</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e8883a">
+<link rel="apple-touch-icon" href="images/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f4ef;
+  --paper: #fdfbf8;
+  --text: #2e2820;
+  --text-mid: #6b5f52;
+  --text-light: #a99880;
+  --border: #e5ddd3;
+  --shadow: rgba(80,55,30,0.09);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+  background-image: url('images/emomemory_bg.png'),
+    radial-gradient(ellipse at 10% 10%, rgba(232,136,58,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 90%, rgba(106,148,194,0.07) 0%, transparent 55%);
+  background-size: cover, auto, auto;
+  background-position: top center, 0 0, 0 0;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-attachment: scroll, scroll, scroll;
+}
+
+header {
+  max-width: 480px; margin: 0 auto;
+  padding: 14px 20px 4px;
+}
+.header-inner {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-family: 'Noto Sans JP', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 0.18em; }
+.logo em { font-style: normal; color: #e8883a; }
+
+/* ── ハンバーガーメニュー ── */
+.menu-wrap { position: relative; }
+.menu-btn {
+  width: 36px; height: 36px; background: var(--paper);
+  border: 1.5px solid var(--border); border-radius: 12px;
+  cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 5px;
+  padding: 0; transition: all .2s;
+}
+.menu-btn:hover { background: #fff4e8; border-color: #e8883a; }
+.menu-btn span {
+  display: block; width: 16px; height: 1.5px;
+  background: var(--text-mid); border-radius: 2px;
+  transition: all .25s;
+}
+.menu-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.menu-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.menu-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+.dropdown {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  background: var(--paper); border: 1.5px solid var(--border);
+  border-radius: 18px; padding: 6px;
+  box-shadow: 0 8px 28px rgba(80,55,30,0.16);
+  min-width: 210px; z-index: 200;
+  opacity: 0; transform: translateY(-6px) scale(0.97);
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  transform-origin: top left;
+}
+.dropdown.open {
+  opacity: 1; transform: translateY(0) scale(1);
+  pointer-events: all;
+}
+.dropdown-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 10px 12px; border: none; background: none;
+  border-radius: 12px; cursor: pointer; font-family: inherit;
+  text-align: left; transition: background .15s;
+}
+.dropdown-item:hover { background: #fff4e8; }
+.di-icon { font-size: 18px; line-height: 1; flex-shrink: 0; }
+.di-text { display: flex; flex-direction: column; gap: 1px; }
+.di-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.di-sub { font-size: 10px; color: var(--text-light); }
+.dropdown-sep { height: 1px; background: var(--border); margin: 4px 6px; }
+
+/* ── Bottom Nav ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  display: flex; justify-content: center;
+  pointer-events: none;
+}
+.nav-inner {
+  max-width: 360px; width: 88%;
+  background: var(--paper);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -4px 24px rgba(80,55,30,0.13);
+  display: flex; align-items: stretch;
+  pointer-events: all;
+  overflow: hidden;
+  border-top: 1.5px solid var(--border);
+}
+.nav-btn {
+  flex: 1; border: none; background: none; cursor: pointer;
+  font-family: inherit; padding: 10px 6px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: all .2s; position: relative;
+}
+.nav-btn .nb-icon { font-size: 18px; line-height: 1; transition: transform .2s; }
+.nav-btn .nb-lbl { font-size: 9px; font-weight: 500; color: var(--text-light); letter-spacing: 0.08em; transition: color .2s; }
+.nav-btn::after {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 0; height: 3px; background: #e8883a; border-radius: 0 0 4px 4px;
+  transition: width .3s cubic-bezier(.34,1.56,.64,1);
+}
+.nav-btn.on .nb-icon { transform: translateY(-2px); }
+.nav-btn.on .nb-lbl { color: #e8883a; font-weight: 700; }
+.nav-btn.on::after { width: 28px; }
+.nav-sep { width: 1px; background: var(--border); margin: 10px 0; flex-shrink: 0; }
+
+/* ── Date Picker row ── */
+.date-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--paper); border-radius: 14px; padding: 9px 12px;
+  box-shadow: 0 2px 8px var(--shadow); margin-bottom: 10px;
+}
+.d-label { font-size: 10px; color: var(--text-light); letter-spacing: 0.08em; flex-shrink: 0; }
+.date-input {
+  flex: 1; min-width: 0; border: none; background: none; font-family: 'Shippori Mincho', serif;
+  font-size: 13px; color: var(--text); outline: none; cursor: pointer; letter-spacing: 0.02em;
+}
+.date-input::-webkit-inner-spin-button,
+.date-input::-webkit-calendar-picker-indicator { opacity: 0; }
+.cal-btn {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px;
+  width: 30px; height: 30px; cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  transition: all .2s; position: relative; overflow: hidden;
+}
+.cal-btn:hover { background: #fff4e8; border-color: #e8883a; }
+.cal-btn input[type="date"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.time-input {
+  border: none; background: none; font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px; color: var(--text-mid); outline: none; width: 60px;
+  text-align: right; cursor: pointer; flex-shrink: 0;
+}
+
+.wrap { max-width: 480px; margin: 0 auto; padding: 14px 16px 88px; }
+.screen { display: none; }
+.screen.on { display: block; }
+
+.dateline { text-align: center; font-size: 11px; color: var(--text-light); margin-bottom: 14px; letter-spacing: 0.08em; }
+
+.two-col-picker {
+  display: flex; gap: 0; margin-bottom: 10px;
+  background: var(--paper); border-radius: 18px;
+  box-shadow: 0 2px 10px var(--shadow); overflow: hidden;
+}
+.picker-group { flex: 1; padding: 12px 10px; }
+.picker-group:first-child { flex: 3; }
+.picker-group:last-child  { flex: 2; }
+.picker-divider { width: 1px; background: var(--border); margin: 12px 0; }
+.group-label {
+  font-size: 9px; letter-spacing: 0.18em; color: var(--text-light);
+  font-weight: 600; text-align: center; margin-bottom: 8px;
+}
+.emo-grid.r3 { grid-template-columns: repeat(3,1fr); }
+.emo-grid.r2 { grid-template-columns: repeat(2,1fr); }
+.emo-grid { display: grid; gap: 5px; }
+.emo-grid.r5 { grid-template-columns: repeat(5,1fr); }
+
+
+.eb {
+  border: 1.5px solid var(--border); background: var(--paper);
+  border-radius: 14px; padding: 9px 4px 7px; cursor: pointer; text-align: center;
+  transition: all .18s; font-family: inherit;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.eb:hover { transform: translateY(-2px); box-shadow: 0 5px 14px var(--shadow); }
+.eb.on { transform: translateY(-2px); box-shadow: 0 5px 14px var(--shadow); }
+.eb[data-e="嬉しい"].on .lbl { color:#f0b830; }
+.eb[data-e="悲しい"].on .lbl { color:#6098d8; }
+.eb[data-e="怒り"].on   .lbl { color:#e05858; }
+.eb[data-e="驚き"].on   .lbl { color:#f09040; }
+.eb[data-e="不安"].on   .lbl { color:#9070d0; }
+.eb[data-e="楽しい"].on   .lbl { color:#f070a8; }
+.eb[data-e="好き"].on   .lbl { color:#90c840; }
+.eb[data-e="苦手"].on   .lbl { color:#50a860; }
+.eb[data-e="願い"].on   .lbl { color:#e8d870; }
+.eb[data-e="その他"].on .lbl { color:#60b8d8; }
+.eb .sym { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+.eb .lbl { font-size: 10px; font-weight: 500; color: var(--text-mid); }
+.sym-dot { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sym-dot svg, .eb .sym svg { display: block; }
+
+.eb[data-e="嬉しい"].on { background:#fffaee; border-color:#f0b830; }
+.eb[data-e="悲しい"].on { background:#eef3fb; border-color:#6098d8; }
+.eb[data-e="怒り"].on   { background:#fdf2f2; border-color:#e05858; }
+.eb[data-e="驚き"].on   { background:#fff6ee; border-color:#f09040; }
+.eb[data-e="不安"].on   { background:#f5f0fc; border-color:#9070d0; }
+.eb[data-e="楽しい"].on   { background:#fdf0f7; border-color:#f070a8; }
+.eb[data-e="好き"].on   { background:#f4fbee; border-color:#90c840; }
+.eb[data-e="苦手"].on   { background:#eef8f0; border-color:#50a860; }
+.eb[data-e="願い"].on   { background:#fdfbee; border-color:#e8d870; }
+.eb[data-e="その他"].on { background:#eef7fb; border-color:#60b8d8; }
+
+.intensity-wrap {
+  background: var(--paper); border-radius: 18px; padding: 14px 16px;
+  box-shadow: 0 2px 10px var(--shadow); margin-bottom: 10px;
+}
+.intensity-label { font-size: 11px; color: var(--text-light); margin-bottom: 10px; }
+.stars { display: flex; gap: 10px; justify-content: center; }
+.star-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 28px; line-height: 1; padding: 0; transition: transform .15s;
+  color: #ddd;
+}
+.star-btn:hover { transform: scale(1.2); }
+.star-btn.lit { color: #c49a3c; }
+
+.card {
+  background: var(--paper); border-radius: 18px; padding: 14px 16px;
+  box-shadow: 0 2px 10px var(--shadow); margin-bottom: 10px;
+}
+.card label { display: block; font-size: 11px; color: var(--text-light); margin-bottom: 7px; letter-spacing: 0.06em; }
+textarea {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 12px;
+  font-family: inherit; font-size: 13px; color: var(--text); background: var(--bg);
+  resize: none; outline: none; line-height: 1.7; transition: border-color .2s;
+}
+textarea:focus { border-color: #e8883a; }
+textarea::placeholder { color: #c8baaa; }
+
+.photo-zone {
+  border: 2px dashed var(--border); border-radius: 14px; padding: 16px;
+  text-align: center; cursor: pointer; transition: all .2s;
+  position: relative; overflow: hidden; background: var(--bg);
+}
+.photo-zone:hover { border-color: #e8883a; background: #fff9f3; }
+.photo-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.photo-zone .ph-icon { font-size: 22px; margin-bottom: 4px; }
+.photo-zone .ph-hint { font-size: 11px; color: var(--text-light); }
+#photo-preview { width: 100%; max-height: 150px; object-fit: cover; border-radius: 10px; display: none; }
+
+.save-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #e8883a, #d4855c);
+  color: white; border: none; border-radius: 16px;
+  font-family: 'Shippori Mincho', serif; font-size: 16px; cursor: pointer;
+  letter-spacing: 0.15em; box-shadow: 0 4px 18px rgba(232,136,58,.3); transition: all .2s;
+}
+.save-btn:hover { transform: translateY(-2px); box-shadow: 0 7px 22px rgba(232,136,58,.38); }
+
+/* ── Search Bar ── */
+.search-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--paper); border-radius: 14px; padding: 8px 12px;
+  box-shadow: 0 2px 8px var(--shadow); margin-bottom: 8px;
+  border: 1.5px solid var(--border); transition: border-color .2s;
+}
+.search-row:focus-within { border-color: #e8883a; }
+.search-icon { font-size: 14px; flex-shrink: 0; color: var(--text-light); }
+.search-input {
+  flex: 1; border: none; background: none; font-family: inherit;
+  font-size: 13px; color: var(--text); outline: none;
+}
+.search-input::placeholder { color: #c8baaa; }
+.search-clear {
+  background: var(--border); border: none; border-radius: 50%;
+  width: 18px; height: 18px; cursor: pointer; font-size: 9px;
+  display: none; align-items: center; justify-content: center;
+  color: var(--text-mid); line-height: 1; flex-shrink: 0;
+}
+.search-clear.on { display: flex; }
+
+/* ── Date Jump Row ── */
+.date-jump-row {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--paper); border-radius: 14px; padding: 8px 12px;
+  box-shadow: 0 2px 8px var(--shadow); margin-bottom: 8px;
+}
+.djump-label { font-size: 11px; color: var(--text-light); letter-spacing: 0.06em; }
+.djump-selected { font-size: 12px; font-family: 'Shippori Mincho', serif; color: var(--text-mid); }
+.djump-clear {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+  width: 24px; height: 24px; cursor: pointer; font-size: 11px;
+  display: flex; align-items: center; justify-content: center; color: var(--text-light);
+  transition: all .2s;
+}
+.djump-clear:hover { background: #fdf2f2; border-color: #e05858; color: #e05858; }
+
+.filter-row { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; margin-bottom: 12px; align-items: center; }
+.filter-grp-lbl { font-size: 9px; letter-spacing: 0.12em; color: var(--text-light); font-weight: 600; margin-left: 4px; flex-basis: 100%; margin-top: 2px; }
+.chip {
+  flex-shrink: 0; padding: 5px 13px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: var(--paper); font-family: inherit; font-size: 11px; cursor: pointer;
+  color: var(--text-light); transition: all .18s; white-space: nowrap;
+}
+.chip.on { background: #f0ece6; color: var(--text-mid); border-color: var(--text-mid); }
+.chip[data-f="嬉しい"].on { background:#fffaee; color:#f0b830; border-color:#f0b830; }
+.chip[data-f="悲しい"].on { background:#eef3fb; color:#6098d8; border-color:#6098d8; }
+.chip[data-f="怒り"].on   { background:#fdf2f2; color:#e05858; border-color:#e05858; }
+.chip[data-f="驚き"].on   { background:#fff6ee; color:#f09040; border-color:#f09040; }
+.chip[data-f="不安"].on   { background:#f5f0fc; color:#9070d0; border-color:#9070d0; }
+.chip[data-f="楽しい"].on   { background:#fdf0f7; color:#f070a8; border-color:#f070a8; }
+.chip[data-f="好き"].on   { background:#f4fbee; color:#90c840; border-color:#90c840; }
+.chip[data-f="苦手"].on   { background:#eef8f0; color:#50a860; border-color:#50a860; }
+.chip[data-f="願い"].on   { background:#fdfbee; color:#c8b830; border-color:#c8b830; }
+.chip[data-f="その他"].on { background:#eef7fb; color:#60b8d8; border-color:#60b8d8; }
+
+.ecard {
+  background: var(--paper); border-radius: 18px; padding: 13px 14px; margin-bottom: 9px;
+  box-shadow: 0 2px 10px var(--shadow); border-left: 4px solid var(--border);
+  cursor: pointer; transition: all .18s; animation: fadeUp .3s ease;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+.ecard:hover { transform: translateY(-2px); box-shadow: 0 6px 18px var(--shadow); }
+.ecard-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.ecard-sym { font-size: 18px; line-height: 1; }
+.ecard-name { font-size: 12px; font-weight: 700; }
+.ecard-stars { font-size: 11px; margin-left: 2px; }
+.ecard-date { font-size: 10px; color: var(--text-light); margin-left: auto; }
+.ecard-text {
+  font-size: 13px; line-height: 1.65; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ecard-thumb { width: 100%; max-height: 90px; object-fit: cover; border-radius: 8px; margin-top: 7px; }
+
+.empty { text-align: center; padding: 44px 20px; color: var(--text-light); }
+.empty .big { font-size: 44px; margin-bottom: 10px; }
+.empty p { font-size: 13px; line-height: 1.8; }
+
+.sc { background: var(--paper); border-radius: 20px; padding: 16px 18px; box-shadow: 0 2px 10px var(--shadow); margin-bottom: 12px; }
+.sc-title { font-family: 'Shippori Mincho', serif; font-size: 13px; color: var(--text-mid); margin-bottom: 13px; letter-spacing: 0.08em; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.kpi { background: var(--bg); border-radius: 13px; padding: 12px; text-align: center; }
+.kpi-n { font-family: 'Shippori Mincho', serif; font-size: 28px; line-height: 1; }
+.kpi-s { font-size: 10px; color: var(--text-light); margin-top: 2px; }
+.bar-chart { display: flex; flex-direction: column; gap: 7px; }
+.br { display: flex; align-items: center; gap: 7px; }
+.br-lbl { width: 56px; font-size: 10px; display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.br-sym { font-size: 14px; }
+.br-track { flex: 1; height: 9px; background: var(--border); border-radius: 9px; overflow: hidden; }
+.br-fill { height: 100%; border-radius: 9px; transition: width 1s cubic-bezier(.34,1.56,.64,1); }
+.br-cnt { font-size: 11px; color: var(--text-light); width: 18px; text-align: right; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.idea-item { padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; line-height: 1.7; color: var(--text-mid); }
+
+.overlay {
+  position: fixed; inset: 0; background: rgba(46,40,32,.45); backdrop-filter: blur(5px);
+  display: flex; align-items: flex-end; z-index: 100; opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.overlay.on { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--paper); border-radius: 24px 24px 0 0; padding: 18px 20px 44px;
+  width: 100%; max-height: 80vh; overflow-y: auto;
+  transform: translateY(100%); transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.overlay.on .modal { transform: translateY(0); }
+.modal-handle { width: 34px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 15px; }
+.modal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.modal-sym { font-size: 30px; }
+.modal-ename { font-family: 'Shippori Mincho', serif; font-size: 18px; }
+.modal-stars-line { font-size: 14px; }
+.modal-dt { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+.modal-txt { font-size: 14px; line-height: 1.85; margin-bottom: 10px; }
+.modal-idea { font-size: 12px; color: var(--text-light); line-height: 1.7; margin-bottom: 10px; }
+.modal-img { width: 100%; border-radius: 14px; }
+
+/* ── Garden ── */
+.garden-card {
+  background: var(--paper); border-radius: 20px; padding: 14px 14px 10px;
+  box-shadow: 0 2px 12px var(--shadow); margin-bottom: 0;
+}
+.garden-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.garden-title { font-size: 11px; color: var(--text-light); letter-spacing: 0.1em; }
+.garden-month-nav { display: flex; gap: 4px; }
+.month-nav-btn {
+  background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+  width: 26px; height: 26px; cursor: pointer; font-size: 14px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid); transition: all .18s;
+}
+.month-nav-btn:hover { background: #fff4e8; border-color: #e8883a; color: #e8883a; }
+.garden-wrap { width: 100%; overflow: hidden; border-radius: 12px; }
+.garden-bg {
+  width: 100%; min-height: 160px;
+  background: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
+  position: relative; display: flex; align-items: flex-end;
+}
+.garden-flowers {
+  width: 100%; display: flex; align-items: flex-end;
+  justify-content: space-around; padding: 8px 4px 10px; gap: 2px;
+}
+.garden-flower-slot {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.garden-flower-img {
+  width: 100%; max-width: 32px; height: 64px; object-fit: contain; display: block;
+}
+.garden-flower-name { display: none; }
+.garden-flower-stars { display: none; }
+.garden-labels-bar {
+  background: var(--paper); border-radius: 16px;
+  padding: 8px 4px 10px; margin-bottom: 12px;
+  box-shadow: 0 4px 10px var(--shadow);
+  display: flex; justify-content: space-around;
+}
+.garden-label-slot {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.garden-label-name {
+  font-size: 8px; color: var(--text-light); text-align: center; line-height: 1.2;
+}
+.garden-label-stars {
+  font-size: 9px; font-weight: 700; color: var(--text-mid); line-height: 1;
+}
+.garden-legend { display: none; }
+.g-leg { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-mid); }
+.g-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.toast {
+  position: fixed; bottom: 92px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--text); color: white; padding: 9px 20px; border-radius: 20px;
+  font-size: 13px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 200; white-space: nowrap;
+}
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Flower Display (一覧) ── */
+.flower-panel {
+  display: none;
+  background-color: var(--paper);
+  background-image: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
+  border-radius: 20px; box-shadow: 0 2px 10px var(--shadow);
+  margin-bottom: 0; overflow: hidden;
+  height: 220px; position: relative;
+}
+.flower-panel.on { display: block; }
+.flower-panel-img {
+  width: 160px; height: 160px; object-fit: contain;
+  display: block;
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+}
+.flower-info-bar {
+  display: none; align-items: center; gap: 10px;
+  background: var(--paper); border-radius: 16px;
+  padding: 8px 16px 10px;
+  box-shadow: 0 4px 10px var(--shadow);
+}
+.flower-info-bar.on { display: flex; margin-bottom: 12px; }
+.flower-star-count {
+  font-family: 'Shippori Mincho', serif; font-size: 13px; color: var(--text-mid);
+  flex-shrink: 0;
+}
+.flower-progress {
+  flex: 1; height: 6px; background: var(--border); border-radius: 6px; overflow: hidden;
+}
+.flower-progress-bar {
+  height: 100%; border-radius: 6px; transition: width 0.8s cubic-bezier(.34,1.56,.64,1);
+}
+.flower-cycle-count {
+  font-family: 'Shippori Mincho', serif; font-size: 13px; color: var(--text-mid);
+  flex-shrink: 0; min-width: 40px; text-align: right;
+}
+
+/* ── Modal edit ── */
+.modal-action-row {
+  display: flex; gap: 10px; margin-top: 16px;
+}
+.modal-del-btn {
+  flex: 1; padding: 11px; border: 1.5px solid var(--border); border-radius: 14px;
+  background: var(--bg); color: var(--text-mid); font-family: inherit; font-size: 13px;
+  cursor: pointer; transition: all .18s;
+}
+.modal-del-btn:hover { border-color: #e05858; color: #e05858; background: #fdf2f2; }
+.modal-edit-btn {
+  flex: 2; padding: 11px; border: none; border-radius: 14px;
+  background: var(--bg); border: 1.5px solid var(--border);
+  color: var(--text-mid); font-family: inherit; font-size: 13px;
+  cursor: pointer; transition: all .18s;
+}
+.modal-edit-btn:hover { border-color: #e8883a; color: #e8883a; background: #fff9f3; }
+.medit-section-label {
+  font-size: 11px; color: var(--text-light); margin-bottom: 7px; letter-spacing: 0.06em;
+}
+.medit-emo-grid { gap: 5px; margin-bottom: 0; }
+.medit-emo-grid .eb { padding: 7px 4px 5px; border-radius: 12px; }
+
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="menu-wrap">
+      <button class="menu-btn" id="menu-btn" onclick="toggleMenu()" aria-label="メニュー">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="dropdown" id="dropdown">
+        <button class="dropdown-item" onclick="exportData(); closeMenu()">
+          <span class="di-icon">📦</span>
+          <span class="di-text">
+            <span class="di-title">データ保存</span>
+            <span class="di-sub">ZIP形式（写真込み）で保存</span>
+          </span>
+        </button>
+        <div class="dropdown-sep"></div>
+        <label class="dropdown-item">
+          <span class="di-icon">📂</span>
+          <span class="di-text">
+            <span class="di-title">復元</span>
+            <span class="di-sub">バックアップから読み込む</span>
+          </span>
+          <input type="file" accept=".zip,.json" onchange="importData(this); closeMenu()" style="display:none">
+        </label>
+      </div>
+    </div>
+    <div class="logo">EMO <em>MEMORY</em></div>
+    <div style="width:36px"></div><!-- ロゴを中央に保つためのスペーサー -->
+  </div>
+</header>
+
+<nav class="bottom-nav">
+  <div class="nav-inner">
+    <button class="nav-btn on" id="nav-add" onclick="switchTab('add',this)">
+      <span class="nb-icon">✏️</span><span class="nb-lbl">MEMORY</span>
+    </button>
+    <div class="nav-sep"></div>
+    <button class="nav-btn" id="nav-list" onclick="switchTab('list',this)">
+      <span class="nb-icon">📖</span><span class="nb-lbl">FLOWERS</span>
+    </button>
+    <div class="nav-sep"></div>
+    <button class="nav-btn" id="nav-stats" onclick="switchTab('stats',this)">
+      <span class="nb-icon">✦</span><span class="nb-lbl">GARDEN</span>
+    </button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- ADD -->
+  <div class="screen on" id="s-add">
+    <div class="date-row">
+      <span class="d-label">📅</span>
+      <input class="date-input" type="text" id="date-display" readonly onclick="focusDatePicker()" placeholder="日付を選ぶ">
+      <input class="time-input" type="time" id="time-input">
+      <div class="cal-btn" title="カレンダーで選ぶ">📆
+        <input type="date" id="cal-input" onchange="onCalChange(this)">
+      </div>
+    </div>
+
+    <div class="card">
+      <label>✏ 今の気持ちをメモ</label>
+      <textarea id="t-memo" rows="4" placeholder="どんな小さなことでも…"></textarea>
+    </div>
+    <div class="two-col-picker">
+      <div class="picker-group" style="flex:1">
+        <div class="group-label">感 情 ・ 状 態</div>
+        <div class="emo-grid r5">
+          <button class="eb" data-e="嬉しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">嬉しい</span></button>
+          <button class="eb" data-e="悲しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">悲しい</span></button>
+          <button class="eb" data-e="怒り"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">怒り</span></button>
+          <button class="eb" data-e="驚き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">驚き</span></button>
+          <button class="eb" data-e="不安"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">不安</span></button>
+          <button class="eb" data-e="楽しい"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">楽しい</span></button>
+          <button class="eb" data-e="好き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">好き</span></button>
+          <button class="eb" data-e="苦手"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">苦手</span></button>
+          <button class="eb" data-e="願い"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">願い</span></button>
+          <button class="eb" data-e="その他" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">その他</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="intensity-wrap">
+      <div class="intensity-label">★ 強さ（1〜5）</div>
+      <div class="stars" id="stars">
+        <button class="star-btn" onclick="pickStar(1)">★</button>
+        <button class="star-btn" onclick="pickStar(2)">★</button>
+        <button class="star-btn" onclick="pickStar(3)">★</button>
+        <button class="star-btn" onclick="pickStar(4)">★</button>
+        <button class="star-btn" onclick="pickStar(5)">★</button>
+      </div>
+    </div>
+    <div class="card">
+      <label>💡 アイデアの種（気づいたこと・ひらめき）</label>
+      <textarea id="t-idea" rows="2" placeholder="この感情から何か気づいたことは？"></textarea>
+    </div>
+    <div class="card">
+      <label>📷 写真・イラストを貼る（任意）</label>
+      <div class="photo-zone">
+        <input type="file" accept="image/*" id="pfile" onchange="loadPhoto(this)">
+        <img id="photo-preview">
+        <div id="pph">
+          <div class="ph-icon">🖼</div>
+          <div class="ph-hint">タップして写真を選ぶ</div>
+        </div>
+      </div>
+    </div>
+    <button id="photo-remove-btn" onclick="removePhoto()" style="display:none;margin-top:8px;width:100%;padding:8px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text-light);font-family:inherit;font-size:12px;cursor:pointer;transition:all .18s" onmouseover="this.style.borderColor='#e05858';this.style.color='#e05858'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-light)'">🗑 写真を削除</button>
+    <button class="save-btn" onclick="saveEntry()">✦ 感情を記録する</button>
+  </div>
+
+  <!-- LIST -->
+  <div class="screen" id="s-list">
+    <div class="flower-panel" id="flower-panel">
+      <img class="flower-panel-img" id="flower-panel-img" src="" alt="">
+    </div>
+    <div class="flower-info-bar" id="flower-info-bar">
+      <div class="flower-star-count" id="flower-star-count">★ 0</div>
+      <div class="flower-progress"><div class="flower-progress-bar" id="flower-progress-bar"></div></div>
+      <div class="flower-cycle-count" id="flower-cycle-count"></div>
+    </div>
+    <!-- Filter chips -->
+    <div class="filter-row" id="filters"></div>
+    <!-- Search -->
+    <div class="search-row">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search-input" type="text" placeholder="メモ・アイデアを検索…" oninput="onSearch(this)">
+      <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+    </div>
+    <!-- Date jump -->
+    <div class="date-jump-row">
+      <div class="cal-btn">
+        <span>🗓</span>
+        <input type="date" id="djump-input" onchange="onDateJump(this)">
+      </div>
+      <span class="djump-label">日付で絞り込む</span>
+      <span id="djump-selected" class="djump-selected"></span>
+      <button id="djump-clear" class="djump-clear" onclick="clearDateJump()" style="display:none">✕</button>
+    </div>
+    <div id="elist"></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="screen" id="s-stats">
+    <!-- Garden -->
+    <div class="garden-card">
+      <div class="garden-header">
+        <div class="garden-title">🌱 <span id="garden-month-label">〇月</span>の庭</div>
+        <div class="garden-month-nav">
+          <button class="month-nav-btn" onclick="shiftGardenMonth(-1)">‹</button>
+          <button class="month-nav-btn" onclick="shiftGardenMonth(1)">›</button>
+        </div>
+      </div>
+      <div class="garden-wrap">
+        <div class="garden-bg" id="garden-bg">
+          <div class="garden-flowers" id="garden-flowers"></div>
+        </div>
+      </div>
+      <div class="garden-legend" id="garden-legend"></div>
+    </div>
+    <div class="garden-labels-bar" id="garden-labels-bar"></div>
+    <div class="sc">
+      <div class="sc-title">✦ 記録サマリー</div>
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-n" id="st-total">0</div><div class="kpi-s">合計記録</div></div>
+        <div class="kpi"><div class="kpi-n" id="st-week">0</div><div class="kpi-s">今週</div></div>
+        <div class="kpi"><div class="kpi-n" id="st-streak">0</div><div class="kpi-s">連続記録（日）</div></div>
+        <div class="kpi"><div class="kpi-n" id="st-top">—</div><div class="kpi-s">最多感情</div></div>
+      </div>
+    </div>
+    <div class="sc">
+      <div class="sc-title">🌿 過去7日間によく感じたこと</div>
+      <div class="tags" id="recent-tags"></div>
+    </div>
+    <div class="sc">
+      <div class="sc-title">💡 アイデアの種まとめ</div>
+      <div id="idea-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+
+    <!-- 表示モード -->
+    <div id="m-view-mode">
+      <div class="modal-head">
+        <span class="modal-sym" id="m-sym"></span>
+        <div>
+          <div class="modal-ename" id="m-name"></div>
+          <div class="modal-stars-line" id="m-stars"></div>
+          <div class="modal-dt" id="m-dt"></div>
+        </div>
+      </div>
+      <p class="modal-txt" id="m-txt"></p>
+      <p class="modal-idea" id="m-idea"></p>
+      <img class="modal-img" id="m-img" style="display:none">
+      <div class="modal-action-row">
+        <button class="modal-del-btn" onclick="deleteEntry()">🗑 削除</button>
+        <button class="modal-edit-btn" onclick="enterEditMode()">✏ 編集</button>
+      </div>
+      <!-- 削除確認 -->
+      <div id="m-delete-confirm" style="display:none;margin-top:12px;background:#fdf2f2;border-radius:14px;padding:13px 14px;text-align:center">
+        <div style="font-size:13px;color:#e05858;margin-bottom:10px">本当に削除しますか？</div>
+        <div style="display:flex;gap:8px">
+          <button class="modal-del-btn" onclick="deleteCancelled()" style="flex:1">キャンセル</button>
+          <button onclick="deleteConfirmed()" style="flex:1;padding:11px;border:none;border-radius:14px;background:#e05858;color:#fff;font-family:inherit;font-size:13px;cursor:pointer">削除する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 編集モード -->
+    <div id="m-edit-mode" style="display:none">
+      <div class="medit-section-label">✏ メモ</div>
+      <textarea id="m-memo-edit" rows="4"></textarea>
+
+      <div class="medit-section-label" style="margin-top:12px">感情</div>
+      <div class="emo-grid r5 medit-emo-grid" id="m-emo-grid"></div>
+
+      <div class="medit-section-label" style="margin-top:12px">★ 強さ</div>
+      <div class="stars" id="m-stars-edit">
+        <button class="star-btn" onclick="pickEditStar(1)">★</button>
+        <button class="star-btn" onclick="pickEditStar(2)">★</button>
+        <button class="star-btn" onclick="pickEditStar(3)">★</button>
+        <button class="star-btn" onclick="pickEditStar(4)">★</button>
+        <button class="star-btn" onclick="pickEditStar(5)">★</button>
+      </div>
+
+      <div class="medit-section-label" style="margin-top:10px">💡 アイデアの種</div>
+      <textarea id="m-idea-edit" rows="2"></textarea>
+
+      <div class="medit-section-label" style="margin-top:10px">📷 写真</div>
+      <div class="photo-zone" style="margin-bottom:10px">
+        <input type="file" accept="image/*" id="m-pfile" onchange="loadEditPhoto(this)">
+        <img id="m-photo-edit" style="width:100%;max-height:120px;object-fit:cover;border-radius:10px;display:none">
+        <div id="m-pph" style="padding:8px 0">
+          <div class="ph-icon">🖼</div>
+          <div class="ph-hint">タップして変更</div>
+        </div>
+      </div>
+      <button id="m-photo-remove-btn" onclick="removeEditPhoto()" style="display:none;margin-bottom:10px;width:100%;padding:8px;border:1.5px solid var(--border);border-radius:12px;background:var(--bg);color:var(--text-light);font-family:inherit;font-size:12px;cursor:pointer;transition:all .18s" onmouseover="this.style.borderColor='#e05858';this.style.color='#e05858'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-light)'">🗑 写真を削除</button>
+
+      <div class="modal-action-row">
+        <button class="modal-del-btn" onclick="exitEditMode()">キャンセル</button>
+        <button class="modal-edit-btn" onclick="saveEdit()" style="background:linear-gradient(135deg,#e8883a,#d4855c);color:#fff">保存する</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ── IndexedDB（テキスト entries + 写真 photos） ──
+const IDB_NAME  = 'emo-memory-db';
+const IDB_STORE = 'entries';
+const IDB_PHOTOS = 'photos';
+
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 2); // v2: photosストア追加
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE))  db.createObjectStore(IDB_STORE);
+      if (!db.objectStoreNames.contains(IDB_PHOTOS)) db.createObjectStore(IDB_PHOTOS);
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveToIDB(data) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(JSON.stringify(data), 'kn2-entries');
+  } catch(e) { console.warn('[IDB] save error', e); }
+}
+
+async function saveFlowerStatsToIDB(stats) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(JSON.stringify(stats), 'kn2-flowerStats');
+  } catch(e) { console.warn('[IDB] flowerStats save error', e); }
+}
+
+async function loadFlowerStatsFromIDB() {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get('kn2-flowerStats');
+      req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : null);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+
+async function loadFromIDB() {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get('kn2-entries');
+      req.onsuccess = () => resolve(req.result ? JSON.parse(req.result) : null);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+
+// 写真を photos ストアに保存（キー = entry.id）
+async function savePhotoToIDB(entryId, base64) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_PHOTOS, 'readwrite');
+    tx.objectStore(IDB_PHOTOS).put(base64, entryId);
+  } catch(e) { console.warn('[IDB] photo save error', e); }
+}
+
+// 写真を photos ストアから取得
+async function loadPhotoFromIDB(entryId) {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_PHOTOS, 'readonly');
+      const req = tx.objectStore(IDB_PHOTOS).get(entryId);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch(e) { return null; }
+}
+
+// 写真を photos ストアから削除
+async function deletePhotoFromIDB(entryId) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_PHOTOS, 'readwrite');
+    tx.objectStore(IDB_PHOTOS).delete(entryId);
+  } catch(e) { console.warn('[IDB] photo delete error', e); }
+}
+
+// 全写真を取得（バックアップ用）{ id: base64, ... }
+async function loadAllPhotosFromIDB() {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_PHOTOS, 'readonly');
+      const store = tx.objectStore(IDB_PHOTOS);
+      const allData = {};
+      // cursor で key と value を同時に取得（race condition 回避）
+      const req = store.openCursor();
+      req.onsuccess = e => {
+        const cursor = e.target.result;
+        if (cursor) {
+          allData[cursor.key] = cursor.value;
+          cursor.continue();
+        } else {
+          resolve(allData);
+        }
+      };
+      req.onerror = () => resolve({});
+    });
+  } catch(e) { return {}; }
+}
+
+// 旧データ移行：「感動」→「楽しい」へ変換
+async function migrateKandou() {
+  const changed = entries.filter(e => e.emo === '感動');
+  if (changed.length === 0) return;
+  entries = entries.map(e => e.emo === '感動' ? { ...e, emo: '楽しい' } : e);
+  localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  await saveToIDB(entries);
+  console.log(`[migrate] 「感動」→「楽しい」に変換: ${changed.length}件`);
+  showToast(`✓ 旧データを移行しました（${changed.length}件）`);
+}
+
+// 旧データ移行：entry.photo が残っていたら photosストアへ移動
+async function migratePhotos() {
+  let changed = false;
+  for (const entry of entries) {
+    if (entry.photo) {
+      await savePhotoToIDB(entry.id, entry.photo);
+      entry.photo = null;
+      changed = true;
+    }
+  }
+  if (changed) {
+    localStorage.setItem('kn2-entries', JSON.stringify(entries));
+    await saveToIDB(entries);
+    console.log('[IDB] 旧写真データを photosストアへ移行完了');
+  }
+}
+
+
+
+// ── Service Worker 登録（安全版） ──
+if ('serviceWorker' in navigator) {
+  // ページロード直後はリロードをブロック（3秒間）
+  window._justLoaded = true;
+  setTimeout(() => { window._justLoaded = false; }, 3000);
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js?v=20260406')
+      .then(reg => {
+        console.log('[SW] 登録成功:', reg.scope);
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          newSW.addEventListener('statechange', () => {
+            if (newSW.state === 'activated' && !window._justLoaded && !window._saving) {
+              window.location.reload();
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[SW] 登録失敗:', err));
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!window._justLoaded && !window._saving) {
+        window.location.reload();
+      }
+    });
+  });
+}
+
+const BG_LIST_1 = "images/bg_1.png";
+const FLOWER_IMGS = {
+  "種_0": "images/flowers_400/seeds_0.png",
+  "babyleaf_1": "images/flowers_400/babyleaf_1.png",
+  "嬉しい_2": "images/flowers_400/joy_2.png",
+  "嬉しい_3": "images/flowers_400/joy_3.png",
+  "嬉しい_4": "images/flowers_400/joy_4.png",
+  "悲しい_2": "images/flowers_400/sad_2.png",
+  "悲しい_3": "images/flowers_400/sad_3.png",
+  "悲しい_4": "images/flowers_400/sad_4.png",
+  "不安_2": "images/flowers_400/anxiety_2.png",
+  "不安_3": "images/flowers_400/anxiety_3.png",
+  "不安_4": "images/flowers_400/anxiety_4.png",
+  "怒り_2": "images/flowers_400/anger_2.png",
+  "怒り_3": "images/flowers_400/anger_3.png",
+  "怒り_4": "images/flowers_400/anger_4.png",
+  "驚き_2": "images/flowers_400/surprise_2.png",
+  "驚き_3": "images/flowers_400/surprise_3.png",
+  "驚き_4": "images/flowers_400/surprise_4.png",
+  "楽しい_2": "images/flowers_400/inspiration_2.png",
+  "楽しい_3": "images/flowers_400/inspiration_3.png",
+  "楽しい_4": "images/flowers_400/inspiration_4.png",
+  "好き_2": "images/flowers_400/love_2.png",
+  "好き_3": "images/flowers_400/love_3.png",
+  "好き_4": "images/flowers_400/love_4.png",
+  "苦手_1": "images/flowers_400/dislike_1.png",
+  "苦手_2": "images/flowers_400/dislike_2.png",
+  "苦手_3": "images/flowers_400/dislike_3.png",
+  "苦手_4": "images/flowers_400/dislike_4.png",
+  "願い_2": "images/flowers_400/wish_2.png",
+  "願い_3": "images/flowers_400/wish_3.png",
+  "願い_4": "images/flowers_400/wish_4.png",
+  "その他_2": "images/flowers_400/others_2.png",
+  "その他_3": "images/flowers_400/others_3.png",
+  "その他_4": "images/flowers_400/others_4.png",
+};
+function getFlowerImg(emo, stage) {
+  if (stage === 0) return FLOWER_IMGS['種_0'];
+  if (stage === 1) {
+    if (emo === '苦手') return FLOWER_IMGS['苦手_1'];
+    return FLOWER_IMGS['babyleaf_1'];
+  }
+  return FLOWER_IMGS[emo + '_' + stage] || null;
+}
+
+function getStageFromStars(count) {
+  if (count === 0)  return 0;
+  if (count <= 3)   return 1;
+  if (count <= 6)   return 2;
+  if (count <= 9)   return 3;
+  return 4;
+}
+
+const EMO = {
+  "嬉しい": { c:"#f0b830", bg:"#fffaee" },
+  "悲しい": { c:"#6098d8", bg:"#eef3fb" },
+  "怒り":   { c:"#e05858", bg:"#fdf2f2" },
+  "驚き":   { c:"#f09040", bg:"#fff6ee" },
+  "不安":   { c:"#9070d0", bg:"#f5f0fc" },
+  "楽しい": { c:"#f070a8", bg:"#fdf0f7" },
+  "好き":   { c:"#90c840", bg:"#f4fbee" },
+  "苦手":   { c:"#50a860", bg:"#eef8f0" },
+  "願い":   { c:"#e8d870", bg:"#fdfbee" },
+  "その他": { c:"#60b8d8", bg:"#eef7fb" },
+};
+
+function wcDotSVG(color, size = 28) {
+  const s = size;
+  const r = s / 2;
+  const h = color.replace('#','');
+  const n = parseInt(h.slice(0,2),16);
+  const wobble = (i) => {
+    const a = (i * 137.5 * Math.PI / 180);
+    const d = (n % 3 + 1) * 0.06;
+    return { dx: Math.cos(a)*d*s, dy: Math.sin(a)*d*s };
+  };
+  const blobs = [0,1,2,3].map(i => {
+    const {dx,dy} = wobble(i);
+    const rx = r * (0.72 + (n*i%7)*0.025);
+    const ry = r * (0.68 + (n*i%5)*0.028);
+    const rot = (n*i*17)%40 - 20;
+    const alpha = 0.18 + (i*0.09);
+    return `<ellipse cx="${r+dx}" cy="${r+dy}" rx="${rx}" ry="${ry}" transform="rotate(${rot},${r+dx},${r+dy})" fill="${color}" opacity="${alpha}"/>`;
+  }).join('');
+  const main = `<circle cx="${r}" cy="${r}" r="${r*0.72}" fill="${color}" opacity="0.82"/>`;
+  const hi = `<ellipse cx="${r*0.72}" cy="${r*0.68}" rx="${r*0.28}" ry="${r*0.18}" fill="white" opacity="0.38"/>`;
+  const edge = `<circle cx="${r}" cy="${r}" r="${r*0.82}" fill="none" stroke="${color}" stroke-width="${r*0.22}" opacity="0.12"/>`;
+
+  const fid = `wc${h}s${s}`;
+  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="${fid}" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="2" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="${s*0.13}" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+    <g filter="url(#${fid})">${blobs}${edge}${main}</g>
+    ${hi}
+  </svg>`;
+}
+
+function initEmoButtons() {
+  document.querySelectorAll('.eb').forEach(btn => {
+    const emo = btn.dataset.e;
+    if (!emo || !EMO[emo]) return;
+    const symEl = btn.querySelector('.sym');
+    if (symEl) symEl.innerHTML = wcDotSVG(EMO[emo].c, 28);
+  });
+}
+
+let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
+let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
+let dateJumpDate = null, searchQuery = '';
+let flowerStats = JSON.parse(localStorage.getItem('kn2-flowerStats') || '{}');
+let _renderGen = 0;  // renderList() の競合防止用世代番号
+
+function onDateJump(input) {
+  if (!input.value) return;
+  dateJumpDate = input.value;
+  const d = new Date(input.value + 'T00:00:00');
+  const DAYS = '日月火水木金土';
+  document.getElementById('djump-selected').textContent =
+    `${d.getMonth()+1}/${d.getDate()}（${DAYS[d.getDay()]}）`;
+  document.getElementById('djump-clear').style.display = 'flex';
+  renderList();
+}
+
+function clearDateJump() {
+  dateJumpDate = null;
+  document.getElementById('djump-input').value = '';
+  document.getElementById('djump-selected').textContent = '';
+  document.getElementById('djump-clear').style.display = 'none';
+  renderList();
+}
+
+function init() {
+  const d = new Date();
+  setDateDisplay(d);
+  document.getElementById('cal-input').value = toDateVal(d);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('time-input').value = `${hh}:${mm}`;
+  renderStars(selStar, null);
+  buildFilters();
+  initEmoButtons();
+  // ※ renderList() はFLOWERSタブを開いた時（switchTab）に呼ぶため、ここでは呼ばない
+  //   init()時点で呼ぶと_renderGenの競合でswitchTab後の描画がスキップされる原因になる
+}
+
+function toDateVal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function setDateDisplay(d) {
+  const DAYS = '日月火水木金土';
+  document.getElementById('date-display').value =
+    `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${DAYS[d.getDay()]}）`;
+}
+function onCalChange(input) {
+  if (!input.value) return;
+  const d = new Date(input.value + 'T00:00:00');
+  setDateDisplay(d);
+}
+function focusDatePicker() {
+  document.getElementById('cal-input').showPicker?.();
+}
+function getEntryDate() {
+  const calVal = document.getElementById('cal-input').value;
+  const timeVal = document.getElementById('time-input').value || '00:00';
+  if (!calVal) return new Date().toISOString();
+  return new Date(`${calVal}T${timeVal}:00`).toISOString();
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('s-'+id).classList.add('on');
+  btn.classList.add('on');
+  if (id === 'list') { updateFlowerPanel(); renderList(); }
+  if (id === 'stats') renderStats();
+}
+
+function pickEmo(btn) {
+  document.querySelectorAll('.eb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  selEmo = btn.dataset.e;
+  renderStars(selStar, EMO[selEmo].c);
+}
+
+function pickStar(n) {
+  selStar = n;
+  renderStars(n, selEmo ? EMO[selEmo].c : null);
+}
+
+function renderStars(n, color) {
+  const col = color || '#c49a3c';
+  document.querySelectorAll('.star-btn').forEach((btn, i) => {
+    if (i < n) { btn.classList.add('lit'); btn.style.color = col; }
+    else { btn.classList.remove('lit'); btn.style.color = '#ddd'; }
+  });
+}
+
+function loadPhoto(input) {
+  const f = input.files[0]; if (!f) return;
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = e => {
+    img.onload = () => {
+      const MAX = 1280;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      photoUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const p = document.getElementById('photo-preview');
+      p.src = photoUrl; p.style.display = 'block';
+      document.getElementById('pph').style.display = 'none';
+      document.getElementById('photo-remove-btn').style.display = 'block';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+function removePhoto() {
+  photoUrl = null;
+  document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('photo-preview').src = '';
+  document.getElementById('pph').style.display = 'block';
+  document.getElementById('pfile').value = '';
+  document.getElementById('photo-remove-btn').style.display = 'none';
+}
+
+async function saveEntry() {
+  if (!selEmo) { showToast('感情を選んでね 💭'); return; }
+  const text = document.getElementById('t-memo').value.trim();
+  if (!text) { showToast('気持ちをメモしてね ✏'); return; }
+  window._saving = true;
+  const entry = {
+    id: Date.now(), emo: selEmo, star: selStar,
+    text, idea: document.getElementById('t-idea').value.trim(),
+    photo: null, date: getEntryDate()  // photoはIDB管理
+  };
+  // 写真があれば photosストアへ
+  if (photoUrl) {
+    await savePhotoToIDB(entry.id, photoUrl);
+  }
+  entries.unshift(entry);
+  localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  saveToIDB(entries);
+
+  // 満開検知: 10回の倍数になったら cycleCount++
+  const emoCount = entries.filter(e => e.emo === selEmo).length;
+  if (emoCount > 0 && emoCount % 10 === 0) {
+    if (!flowerStats[selEmo]) flowerStats[selEmo] = { cycleCount: 0 };
+    flowerStats[selEmo].cycleCount = (flowerStats[selEmo].cycleCount || 0) + 1;
+    localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
+    saveFlowerStatsToIDB(flowerStats);
+    const bloomEmo = selEmo; // closureのためキャプチャ
+    setTimeout(() => {
+      showToast(`🌸 満開達成！ステージ ${flowerStats[bloomEmo].cycleCount} へ`);
+    }, 600);
+  }
+
+  document.querySelectorAll('.eb').forEach(b => b.classList.remove('on'));
+  document.getElementById('t-memo').value = '';
+  document.getElementById('t-idea').value = '';
+  document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('photo-preview').src = '';
+  document.getElementById('pph').style.display = 'block';
+  document.getElementById('pfile').value = '';
+  document.getElementById('photo-remove-btn').style.display = 'none';
+  selEmo = null; photoUrl = null; selStar = 3;
+  renderStars(3, null);
+  renderList();
+  showToast('✓ 記録しました！');
+  setTimeout(() => { window._saving = false; }, 3000);
+}
+
+function buildFilters() {
+  const row = document.getElementById('filters');
+  const allKeys = Object.keys(EMO);
+  const allBtn = `<button class="chip${curFilter==='all'?' on':''}" data-f="all" onclick="setFilter(this)">すべて</button>`;
+  const desc = `<span style="font-size:10px;color:var(--text-light);letter-spacing:0.06em;align-self:center">感情の花はメモリーの数で４段階に成長します🌱→🌹</span>`;
+  const br = `<div style="flex-basis:100%;height:0"></div>`;
+  const chips = allKeys.map(k => `<button class="chip${curFilter===k?' on':''}" data-f="${k}" onclick="setFilter(this)"><span class="sym-dot" style="width:12px;height:12px;vertical-align:middle;margin-right:3px">${wcDotSVG(EMO[k].c,12)}</span>${k}</button>`).join('');
+  row.innerHTML = allBtn + desc + br + chips;
+}
+
+function setFilter(btn) {
+  const f = btn.dataset.f;
+  curFilter = f;
+  document.querySelectorAll('#filters .chip').forEach(b => {
+    b.classList.toggle('on', b.dataset.f === f);
+  });
+  updateFlowerPanel();
+  renderList();
+}
+
+let _bgTestImg = null;
+
+function updateFlowerPanel() {
+  const panel = document.getElementById('flower-panel');
+  const infoBar = document.getElementById('flower-info-bar');
+
+  // 前回の非同期テスト画像をキャンセル
+  if (_bgTestImg) {
+    _bgTestImg.onload = null;
+    _bgTestImg.onerror = null;
+    _bgTestImg = null;
+  }
+
+  if (curFilter === 'all') {
+    panel.classList.remove('on');
+    infoBar.classList.remove('on');
+    panel.style.backgroundImage = '';
+    panel.style.backgroundSize = '';
+    panel.style.backgroundPosition = '';
+    return;
+  }
+  panel.classList.add('on');
+  infoBar.classList.add('on');
+
+  const totalCount = entries.filter(e => e.emo === curFilter).length;
+  const stage = getStageFromStars(totalCount);
+  const img = getFlowerImg(curFilter, stage);
+
+  document.getElementById('flower-panel-img').src = img || '';
+  document.getElementById('flower-star-count').textContent = `📝 ${totalCount}回`;
+
+  // cycleCount / currentCount を計算
+  const cycleCount = flowerStats[curFilter]?.cycleCount || 0;
+  const pct = Math.min(totalCount / 10 * 100, 100);
+  const bar = document.getElementById('flower-progress-bar');
+  bar.style.width = pct + '%';
+  bar.style.background = EMO[curFilter]?.c || '#e8883a';
+
+  // 🌸N本 表示
+  const cycleEl = document.getElementById('flower-cycle-count');
+  if (cycleCount > 0) {
+    cycleEl.textContent = `🌸 ${cycleCount}本`;
+  } else {
+    cycleEl.textContent = '';
+  }
+
+  // 背景画像の切り替え（周回数に応じて flowers_bg_1〜10）
+  const bgIndex = Math.min(Math.max(cycleCount, 1), 10);
+  const bgPath = `images/flowers_bg/flowers_bg_${bgIndex}.png`;
+  const testImg = new Image();
+  _bgTestImg = testImg;
+  testImg.onload = () => {
+    if (_bgTestImg !== testImg) return; // キャンセル済みなら無視
+    panel.style.backgroundImage = `url('${bgPath}')`;
+    panel.style.backgroundSize = 'cover';
+    panel.style.backgroundPosition = 'center';
+  };
+  testImg.onerror = () => {
+    if (_bgTestImg !== testImg) return; // キャンセル済みなら無視
+    panel.style.backgroundImage = '';
+    panel.style.backgroundSize = '';
+    panel.style.backgroundPosition = '';
+  };
+  testImg.src = bgPath;
+}
+
+function starHTML(n, color) {
+  return Array.from({length:5}, (_,i) =>
+    `<span style="color:${i<n?color:'#ddd'}">★</span>`
+  ).join('');
+}
+
+async function renderList() {
+  const gen = ++_renderGen;  // この呼び出しの世代番号を取得
+  const list = document.getElementById('elist');
+  const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+  let filtered = curFilter === 'all' ? sorted : sorted.filter(e => e.emo === curFilter);
+  if (dateJumpDate) {
+    filtered = filtered.filter(e => e.date.slice(0,10) === dateJumpDate);
+  }
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(e =>
+      (e.text && e.text.toLowerCase().includes(q)) ||
+      (e.idea && e.idea.toLowerCase().includes(q))
+    );
+  }
+  if (!filtered.length) {
+    if (gen !== _renderGen) return;  // 古い世代なら反映しない
+    list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
+    return;
+  }
+  // 写真を一括取得
+  const photoMap = {};
+  await Promise.all(filtered.map(async e => {
+    const ph = await loadPhotoFromIDB(e.id);
+    if (ph) photoMap[e.id] = ph;
+  }));
+  if (gen !== _renderGen) return;  // await 後に世代が変わっていたら反映しない
+  list.innerHTML = filtered.map(e => {
+    const d = new Date(e.date);
+    const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
+    const thumb = photoMap[e.id] ? `<img class="ecard-thumb" src="${photoMap[e.id]}">` : '';
+    return `<div class="ecard" style="border-left-color:${EMO[e.emo].c}" onclick="openModal(${e.id})">
+      <div class="ecard-top">
+        <span class="ecard-sym sym-dot" style="width:20px;height:20px">${wcDotSVG(EMO[e.emo].c,20)}</span>
+        <span class="ecard-name" style="color:${EMO[e.emo].c}">${e.emo}</span>
+        <span class="ecard-stars">${starHTML(e.star, EMO[e.emo].c)}</span>
+        <span class="ecard-date">${ds}</span>
+      </div>
+      <div class="ecard-text">${e.text}</div>
+      ${thumb}
+    </div>`;
+  }).join('');
+}
+
+let modalEntryId = null;
+let editEmo = null, editStar = 3, editPhotoUrl = null;
+
+async function openModal(id) {
+  modalEntryId = id;
+  const e = entries.find(x => x.id === id); if (!e) return;
+  const d = new Date(e.date);
+  document.getElementById('m-sym').innerHTML = `<span class="sym-dot" style="width:36px;height:36px">${wcDotSVG(EMO[e.emo].c,36)}</span>`;
+  document.getElementById('m-name').textContent = e.emo;
+  document.getElementById('m-name').style.color = EMO[e.emo].c;
+  document.getElementById('m-stars').innerHTML = starHTML(e.star, EMO[e.emo].c);
+  document.getElementById('m-dt').textContent =
+    `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  document.getElementById('m-txt').textContent = e.text;
+  document.getElementById('m-idea').textContent = e.idea ? '💡 '+e.idea : '';
+  const img = document.getElementById('m-img');
+  const ph = await loadPhotoFromIDB(e.id);
+  if (ph) { img.src = ph; img.style.display = 'block'; } else img.style.display = 'none';
+  document.getElementById('m-view-mode').style.display = '';
+  document.getElementById('m-edit-mode').style.display = 'none';
+  document.getElementById('m-delete-confirm').style.display = 'none';
+  document.getElementById('overlay').classList.add('on');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('overlay')) {
+    document.getElementById('overlay').classList.remove('on');
+  }
+}
+
+function deleteEntry() {
+  document.getElementById('m-delete-confirm').style.display = '';
+}
+async function deleteConfirmed() {
+  await deletePhotoFromIDB(modalEntryId);
+  entries = entries.filter(x => x.id !== modalEntryId);
+  localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  saveToIDB(entries);
+  document.getElementById('m-delete-confirm').style.display = 'none';
+  document.getElementById('overlay').classList.remove('on');
+  updateFlowerPanel();
+  renderList();
+  showToast('削除しました');
+}
+function deleteCancelled() {
+  document.getElementById('m-delete-confirm').style.display = 'none';
+}
+
+async function enterEditMode() {
+  const e = entries.find(x => x.id === modalEntryId); if (!e) return;
+  editEmo = e.emo;
+  editStar = e.star || 3;
+  editPhotoUrl = await loadPhotoFromIDB(e.id);
+
+  const grid = document.getElementById('m-emo-grid');
+  grid.innerHTML = Object.keys(EMO).map(emo =>
+    `<button class="eb${emo===editEmo?' on':''}" data-e="${emo}" onclick="pickEditEmo(this)">
+      <span class="sym">${wcDotSVG(EMO[emo].c,28)}</span><span class="lbl">${emo}</span>
+    </button>`
+  ).join('');
+  grid.querySelectorAll('.eb').forEach(btn => {
+    const emo = btn.dataset.e;
+    if (btn.classList.contains('on')) {
+      btn.style.background = EMO[emo].bg;
+      btn.style.borderColor = EMO[emo].c;
+      btn.querySelector('.lbl').style.color = EMO[emo].c;
+    }
+  });
+
+  renderEditStars(editStar, EMO[editEmo].c);
+  document.getElementById('m-memo-edit').value = e.text;
+  document.getElementById('m-idea-edit').value = e.idea || '';
+
+  const ph = document.getElementById('m-photo-edit');
+  if (editPhotoUrl) { ph.src = editPhotoUrl; ph.style.display = 'block'; document.getElementById('m-pph').style.display = 'none'; document.getElementById('m-photo-remove-btn').style.display = 'block'; }
+  else { ph.style.display = 'none'; document.getElementById('m-pph').style.display = ''; document.getElementById('m-photo-remove-btn').style.display = 'none'; }
+
+  document.getElementById('m-view-mode').style.display = 'none';
+  document.getElementById('m-edit-mode').style.display = '';
+}
+
+function exitEditMode() {
+  document.getElementById('m-view-mode').style.display = '';
+  document.getElementById('m-edit-mode').style.display = 'none';
+}
+
+function pickEditEmo(btn) {
+  document.querySelectorAll('#m-emo-grid .eb').forEach(b => {
+    b.classList.remove('on');
+    b.style.background = '';
+    b.style.borderColor = '';
+    b.querySelector('.lbl').style.color = '';
+  });
+  btn.classList.add('on');
+  const emo = btn.dataset.e;
+  btn.style.background = EMO[emo].bg;
+  btn.style.borderColor = EMO[emo].c;
+  btn.querySelector('.lbl').style.color = EMO[emo].c;
+  editEmo = emo;
+  renderEditStars(editStar, EMO[emo].c);
+}
+
+function pickEditStar(n) {
+  editStar = n;
+  renderEditStars(n, editEmo ? EMO[editEmo].c : '#c49a3c');
+}
+
+function renderEditStars(n, color) {
+  document.querySelectorAll('#m-stars-edit .star-btn').forEach((btn, i) => {
+    if (i < n) { btn.classList.add('lit'); btn.style.color = color; }
+    else { btn.classList.remove('lit'); btn.style.color = '#ddd'; }
+  });
+}
+
+function loadEditPhoto(input) {
+  const f = input.files[0]; if (!f) return;
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = e => {
+    img.onload = () => {
+      const MAX = 1280;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      editPhotoUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const ph = document.getElementById('m-photo-edit');
+      ph.src = editPhotoUrl; ph.style.display = 'block';
+      document.getElementById('m-pph').style.display = 'none';
+      document.getElementById('m-photo-remove-btn').style.display = 'block';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(f);
+}
+function removeEditPhoto() {
+  editPhotoUrl = null;
+  const ph = document.getElementById('m-photo-edit');
+  ph.style.display = 'none'; ph.src = '';
+  document.getElementById('m-pph').style.display = '';
+  document.getElementById('m-pfile').value = '';
+  document.getElementById('m-photo-remove-btn').style.display = 'none';
+}
+
+async function saveEdit() {
+  const memo = document.getElementById('m-memo-edit').value.trim();
+  if (!memo) { showToast('メモを入力してね ✏'); return; }
+  const idx = entries.findIndex(x => x.id === modalEntryId);
+  if (idx === -1) return;
+  // 写真を IDB に保存（null なら削除）
+  if (editPhotoUrl) {
+    await savePhotoToIDB(modalEntryId, editPhotoUrl);
+  } else {
+    await deletePhotoFromIDB(modalEntryId);
+  }
+  entries[idx] = {
+    ...entries[idx],
+    emo: editEmo,
+    star: editStar,
+    text: memo,
+    idea: document.getElementById('m-idea-edit').value.trim(),
+    photo: null,  // photoはIDB管理
+  };
+  localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  saveToIDB(entries);
+  document.getElementById('overlay').classList.remove('on');
+  updateFlowerPanel();
+  renderList();
+  showToast('更新しました ✓');
+}
+
+function onSearch(input) {
+  searchQuery = input.value.trim();
+  document.getElementById('search-clear').classList.toggle('on', searchQuery.length > 0);
+  renderList();
+}
+function clearSearch() {
+  searchQuery = '';
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-clear').classList.remove('on');
+  renderList();
+}
+
+function calcStreak() {
+  if (!entries.length) return 0;
+  const days = new Set(entries.map(e => e.date.slice(0,10)));
+  const today = new Date();
+  let streak = 0;
+  for (let i = 0; i < 3650; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = toDateVal(d);
+    if (days.has(key)) { streak++; }
+    else if (i === 0) { break; } // 今日記録なし → 昨日から遡って数える
+    else break;
+  }
+  // 今日記録なければ昨日から数える
+  if (streak === 0) {
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    for (let i = 0; i < 3650; i++) {
+      const d = new Date(yesterday);
+      d.setDate(d.getDate() - i);
+      const key = toDateVal(d);
+      if (days.has(key)) streak++;
+      else break;
+    }
+  }
+  return streak;
+}
+
+function renderStats() {
+  drawGarden();
+  const total = entries.length;
+  document.getElementById('st-total').textContent = total;
+  const now = new Date(), wa = new Date(now - 7*24*3600*1000);
+  const thisWeek = entries.filter(e => new Date(e.date) > wa);
+  document.getElementById('st-week').textContent = thisWeek.length;
+  document.getElementById('st-streak').textContent = calcStreak();
+  const counts = {};
+  Object.keys(EMO).forEach(k => counts[k] = 0);
+  entries.forEach(e => counts[e.emo] = (counts[e.emo]||0)+1);
+  const topEmo = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('st-top').innerHTML = topEmo && topEmo[1] > 0
+    ? `<span style="display:inline-flex;justify-content:center">${wcDotSVG(EMO[topEmo[0]].c, 32)}</span>` : '—';
+  const rc = {};
+  thisWeek.forEach(e => rc[e.emo] = (rc[e.emo]||0)+1);
+  const rtag = Object.entries(rc).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('recent-tags').innerHTML = rtag.length
+    ? rtag.map(([k, n]) => `<span class="tag" style="background:${EMO[k].bg};color:${EMO[k].c}"><span class="sym-dot" style="width:14px;height:14px;vertical-align:middle;margin-right:3px">${wcDotSVG(EMO[k].c,14)}</span>${k} × ${n}</span>`).join('')
+    : '<span style="font-size:12px;color:var(--text-light)">まだ記録がありません</span>';
+  const ideas = entries.filter(e => e.idea).slice(0,6);
+  document.getElementById('idea-list').innerHTML = ideas.length
+    ? ideas.map(e => `<div class="idea-item"><span class="sym-dot" style="width:14px;height:14px;vertical-align:middle;margin-right:4px">${wcDotSVG(EMO[e.emo].c,14)}</span>${e.idea}</div>`).join('')
+    : '<p style="font-size:12px;color:var(--text-light)">「アイデアの種」を書くとここに集まります 🌱</p>';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 2200);
+}
+
+/* ────────── FLOWER GARDEN (PNG版) ────────── */
+let gardenMonthOffset = 0;
+
+function shiftGardenMonth(delta) {
+  gardenMonthOffset += delta;
+  if (gardenMonthOffset > 0) gardenMonthOffset = 0;
+  drawGarden();
+}
+
+function getGardenMonth() {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + gardenMonthOffset);
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+function getGardenStage(count) {
+  if (count === 0)  return 0;
+  if (count <= 3)   return 1;
+  if (count <= 6)   return 2;
+  if (count <= 9)   return 3;
+  return 4;
+}
+
+function getGardenImgPath(emo, stage) {
+  const emoKeyMap = {
+    '嬉しい':'joy','悲しい':'sad','怒り':'anger','驚き':'surprise',
+    '不安':'anxiety','楽しい':'inspiration','好き':'love',
+    '苦手':'dislike','願い':'wish','その他':'others'
+  };
+  const emoKey = emoKeyMap[emo] || emo;
+  if (stage === 0) return 'images/flowers_garden/niwa_seeds_0.png';
+  if (stage === 1) {
+    if (emo === '苦手') return 'images/flowers_garden/niwa_dislike_1.png';
+    return 'images/flowers_garden/niwa_babyleaf_1.png';
+  }
+  return `images/flowers_garden/niwa_${emoKey}_${stage}.png`;
+}
+
+function drawGarden() {
+  const { year, month } = getGardenMonth();
+  const lbl = document.getElementById('garden-month-label');
+  if (lbl) lbl.textContent = `${year}年${month + 1}月`;
+
+  const countMap = {};
+  Object.keys(EMO).forEach(k => countMap[k] = 0);
+  entries.forEach(e => {
+    const d = new Date(e.date);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      countMap[e.emo] = (countMap[e.emo] || 0) + 1;
+    }
+  });
+
+  const container = document.getElementById('garden-flowers');
+  if (!container) return;
+
+  container.innerHTML = Object.keys(EMO).map(emo => {
+    const cnt = countMap[emo];
+    const stage = getGardenStage(cnt);
+    const imgPath = getGardenImgPath(emo, stage);
+    const starsLabel = cnt > 0 ? `<div class="garden-flower-stars">${cnt > 99 ? '99+' : cnt}回</div>` : '<div class="garden-flower-stars" style="opacity:0">0</div>';
+    return `<div class="garden-flower-slot">
+      <img class="garden-flower-img" src="${imgPath}" alt="${emo}" loading="lazy">
+      <div class="garden-flower-name">${emo}</div>
+      ${starsLabel}
+    </div>`;
+  }).join('');
+
+  const labelsBar = document.getElementById('garden-labels-bar');
+  if (labelsBar) {
+    labelsBar.innerHTML = Object.keys(EMO).map(emo => {
+      const cnt = countMap[emo];
+      return `<div class="garden-label-slot">
+        <div class="garden-label-name">${emo}</div>
+        <div class="garden-label-stars" style="color:${cnt > 0 ? EMO[emo].c : 'var(--border)'}">${cnt > 0 ? (cnt > 99 ? '99+' : cnt) + '回' : '—'}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+/* ────────── ハンバーガーメニュー ────────── */
+function toggleMenu() {
+  const btn = document.getElementById('menu-btn');
+  const dd  = document.getElementById('dropdown');
+  const isOpen = dd.classList.contains('open');
+  if (isOpen) { closeMenu(); } else {
+    btn.classList.add('open');
+    dd.classList.add('open');
+    // 外クリックで閉じる
+    setTimeout(() => document.addEventListener('click', outsideMenuClick), 0);
+  }
+}
+function closeMenu() {
+  document.getElementById('menu-btn').classList.remove('open');
+  document.getElementById('dropdown').classList.remove('open');
+  document.removeEventListener('click', outsideMenuClick);
+}
+function outsideMenuClick(e) {
+  if (!document.getElementById('menu-btn').contains(e.target) &&
+      !document.getElementById('dropdown').contains(e.target)) {
+    closeMenu();
+  }
+}
+
+/* ────────── データ移行（エクスポート／インポート・ZIP版） ────────── */
+
+// JSZip CDN をロード（初回エクスポート時のみ）
+function loadJSZip() {
+  return new Promise((resolve, reject) => {
+    if (window.JSZip) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function exportData() {
+  try {
+    showToast('📦 バックアップを準備中…');
+    await loadJSZip();
+
+    const zip = new JSZip();
+    const photosFolder = zip.folder('photos');
+
+    // entries.json（photo=null のまま保存）
+    const exportEntries = entries.map(e => ({ ...e, photo: null }));
+    const jsonStr = JSON.stringify({ version: 2, exportedAt: new Date().toISOString(), entries: exportEntries, flowerStats }, null, 2);
+    zip.file('entries.json', jsonStr);
+
+    // 写真を全件取得して photos/ に追加
+    const allPhotos = await loadAllPhotosFromIDB();
+    let photoCount = 0;
+    for (const [idStr, base64] of Object.entries(allPhotos)) {
+      // "data:image/jpeg;base64,XXXX" → バイナリ
+      const base64Data = base64.split(',')[1];
+      if (base64Data) {
+        photosFolder.file(`${idStr}.jpg`, base64Data, { base64: true });
+        photoCount++;
+      }
+    }
+
+    // ZIP 生成
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    a.href = url;
+    a.download = `emomemory_backup_${stamp}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+
+    const mb = (blob.size / 1024 / 1024).toFixed(1);
+    showToast(`📦 保存しました（${exportEntries.length}件・写真${photoCount}枚・${mb}MB）`);
+  } catch(e) {
+    showToast('❌ 保存に失敗: ' + e.message);
+    console.error(e);
+  }
+}
+
+async function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  try {
+    showToast('📂 読み込み中…');
+
+    // ZIP か JSON かを判定
+    if (file.name.endsWith('.zip')) {
+      await loadJSZip();
+      const zip = await JSZip.loadAsync(file);
+
+      // entries.json を読む
+      const jsonFile = zip.file('entries.json');
+      if (!jsonFile) { showToast('❌ entries.json が見つかりません'); return; }
+      const jsonStr = await jsonFile.async('string');
+      const data = JSON.parse(jsonStr);
+      if (!Array.isArray(data.entries)) { showToast('❌ ファイルの形式が正しくありません'); return; }
+
+      // テキストデータをマージ（IDで重複排除）
+      const existing = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
+      const existingIds = new Set(existing.map(e => e.id));
+      const newEntries = data.entries.map(e => ({ ...e, photo: null })).filter(e => !existingIds.has(e.id));
+      const merged = [...existing, ...newEntries].sort((a, b) => new Date(b.date) - new Date(a.date));
+      localStorage.setItem('kn2-entries', JSON.stringify(merged));
+      await saveToIDB(merged);
+      entries = merged;
+
+      // 写真を photos/ から復元
+      let photoCount = 0;
+      const photoFiles = zip.folder('photos');
+      if (photoFiles) {
+        await Promise.all(Object.keys(zip.files).filter(n => n.startsWith('photos/') && !n.endsWith('/')).map(async name => {
+          // キーを数値に変換（entry.id = Date.now() = 数値）
+          const entryId = Number(name.replace('photos/', '').replace('.jpg', ''));
+          if (isNaN(entryId) || entryId === 0) return;
+          const base64 = await zip.file(name).async('base64');
+          await savePhotoToIDB(entryId, 'data:image/jpeg;base64,' + base64);
+          photoCount++;
+        }));
+      }
+
+      renderList();
+      showToast(`✓ 復元しました（新規 ${newEntries.length}件・写真 ${photoCount}枚追加）`);
+
+      // flowerStats を復元（あれば）
+      if (data.flowerStats) {
+        flowerStats = data.flowerStats;
+        localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
+        saveFlowerStatsToIDB(flowerStats);
+      }
+
+    } else {
+      // 旧JSON形式の互換対応
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.version || !Array.isArray(data.entries)) {
+        showToast('❌ ファイルの形式が正しくありません'); return;
+      }
+      const existing = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
+      const existingIds = new Set(existing.map(e => e.id));
+      const newEntries = data.entries.filter(e => !existingIds.has(e.id));
+      // 旧JSON に photo が含まれていれば IDB に移行
+      for (const e of newEntries) {
+        if (e.photo) {
+          await savePhotoToIDB(e.id, e.photo);
+          e.photo = null;
+        }
+      }
+      const merged = [...existing, ...newEntries].sort((a, b) => new Date(b.date) - new Date(a.date));
+      localStorage.setItem('kn2-entries', JSON.stringify(merged));
+      await saveToIDB(merged);
+      entries = merged;
+      renderList();
+      showToast(`✓ 復元しました（新規 ${newEntries.length}件追加）`);
+      if (data.flowerStats) {
+        flowerStats = data.flowerStats;
+        localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
+        saveFlowerStatsToIDB(flowerStats);
+      }
+      if (data._photoStripped) {
+        setTimeout(() => showToast('⚠ このバックアップに写真データはありません'), 2600);
+      }
+    }
+  } catch(e) {
+    showToast('❌ 読み込みエラー: ' + e.message);
+    console.error(e);
+  }
+  input.value = '';
+}
+
+// 起動時：localStorageが空でもIndexedDBにデータがあれば復元、旧写真も移行
+// ※ 全関数・変数の定義後に実行することで、末尾でinit()を安全に呼べる
+(async function restoreIfNeeded() {
+  const lsRaw = localStorage.getItem('kn2-entries');
+  const lsData = lsRaw ? JSON.parse(lsRaw) : [];
+  if (lsData.length === 0) {
+    const idbData = await loadFromIDB();
+    if (idbData && idbData.length > 0) {
+      localStorage.setItem('kn2-entries', JSON.stringify(idbData));
+      entries = idbData;
+      console.log('[IDB] localStorageへ復元:', idbData.length, '件');
+    }
+  }
+  // 旧データ「感動」→「楽しい」へ変換
+  await migrateKandou();
+  // 旧データ（entry.photo に Base64が残っているもの）を photosストアへ移行
+  await migratePhotos();
+  // 全関数定義済みの状態でinit()を実行
+  init();
+})();
+</script>
+</body>
+</html>
