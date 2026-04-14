@@ -896,25 +896,7 @@ async function migratePhotos() {
   }
 }
 
-// 起動時：localStorageが空でもIndexedDBにデータがあれば復元、旧写真も移行
-(async function restoreIfNeeded() {
-  const lsRaw = localStorage.getItem('kn2-entries');
-  const lsData = lsRaw ? JSON.parse(lsRaw) : [];
-  if (lsData.length === 0) {
-    const idbData = await loadFromIDB();
-    if (idbData && idbData.length > 0) {
-      localStorage.setItem('kn2-entries', JSON.stringify(idbData));
-      entries = idbData;
-      console.log('[IDB] localStorageへ復元:', idbData.length, '件');
-      if (typeof renderList === 'function') renderList();
-      if (document.getElementById('s-stats')?.classList.contains('on') && typeof renderStats === 'function') renderStats();
-    }
-  }
-  // 旧データ「感動」→「楽しい」へ変換
-  await migrateKandou();
-  // 旧データ（entry.photo に Base64が残っているもの）を photosストアへ移行
-  await migratePhotos();
-})();
+
 
 // ── Service Worker 登録（安全版） ──
 if ('serviceWorker' in navigator) {
@@ -1080,7 +1062,7 @@ function clearDateJump() {
   renderList();
 }
 
-(function init() {
+function init() {
   const d = new Date();
   setDateDisplay(d);
   document.getElementById('cal-input').value = toDateVal(d);
@@ -1090,8 +1072,9 @@ function clearDateJump() {
   renderStars(selStar, null);
   buildFilters();
   initEmoButtons();
-  renderList();  // 初回ロード時にFLOWERSタブの一覧を生成しておく
-})();
+  // ※ renderList() はFLOWERSタブを開いた時（switchTab）に呼ぶため、ここでは呼ばない
+  //   init()時点で呼ぶと_renderGenの競合でswitchTab後の描画がスキップされる原因になる
+}
 
 function toDateVal(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1245,12 +1228,25 @@ function setFilter(btn) {
   renderList();
 }
 
+let _bgTestImg = null;
+
 function updateFlowerPanel() {
   const panel = document.getElementById('flower-panel');
   const infoBar = document.getElementById('flower-info-bar');
+
+  // 前回の非同期テスト画像をキャンセル
+  if (_bgTestImg) {
+    _bgTestImg.onload = null;
+    _bgTestImg.onerror = null;
+    _bgTestImg = null;
+  }
+
   if (curFilter === 'all') {
     panel.classList.remove('on');
     infoBar.classList.remove('on');
+    panel.style.backgroundImage = '';
+    panel.style.backgroundSize = '';
+    panel.style.backgroundPosition = '';
     return;
   }
   panel.classList.add('on');
@@ -1282,12 +1278,15 @@ function updateFlowerPanel() {
   const bgIndex = Math.min(Math.max(cycleCount, 1), 10);
   const bgPath = `images/flowers_bg/flowers_bg_${bgIndex}.png`;
   const testImg = new Image();
+  _bgTestImg = testImg;
   testImg.onload = () => {
+    if (_bgTestImg !== testImg) return; // キャンセル済みなら無視
     panel.style.backgroundImage = `url('${bgPath}')`;
     panel.style.backgroundSize = 'cover';
     panel.style.backgroundPosition = 'center';
   };
   testImg.onerror = () => {
+    if (_bgTestImg !== testImg) return; // キャンセル済みなら無視
     panel.style.backgroundImage = '';
     panel.style.backgroundSize = '';
     panel.style.backgroundPosition = '';
@@ -1845,6 +1844,27 @@ async function importData(input) {
   }
   input.value = '';
 }
+
+// 起動時：localStorageが空でもIndexedDBにデータがあれば復元、旧写真も移行
+// ※ 全関数・変数の定義後に実行することで、末尾でinit()を安全に呼べる
+(async function restoreIfNeeded() {
+  const lsRaw = localStorage.getItem('kn2-entries');
+  const lsData = lsRaw ? JSON.parse(lsRaw) : [];
+  if (lsData.length === 0) {
+    const idbData = await loadFromIDB();
+    if (idbData && idbData.length > 0) {
+      localStorage.setItem('kn2-entries', JSON.stringify(idbData));
+      entries = idbData;
+      console.log('[IDB] localStorageへ復元:', idbData.length, '件');
+    }
+  }
+  // 旧データ「感動」→「楽しい」へ変換
+  await migrateKandou();
+  // 旧データ（entry.photo に Base64が残っているもの）を photosストアへ移行
+  await migratePhotos();
+  // 全関数定義済みの状態でinit()を実行
+  init();
+})();
 </script>
 </body>
 </html>
