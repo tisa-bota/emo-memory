@@ -28,7 +28,7 @@ body {
   background-size: cover, auto, auto;
   background-position: top center, 0 0, 0 0;
   background-repeat: no-repeat, no-repeat, no-repeat;
-  background-attachment: scroll, scroll, scroll;
+  background-attachment: fixed, fixed, fixed;
 }
 
 header {
@@ -1277,30 +1277,23 @@ function updateFlowerPanel() {
   }
 
   // 背景画像の切り替え（周回数に応じて flowers_bg_1〜10）
-  // cycleCount=0（未周回）の場合はグラデーションのみ表示
-  if (cycleCount <= 0) {
+  const bgIndex = Math.min(Math.max(cycleCount, 1), 10);
+  const bgPath = `images/flowers_bg/flowers_bg_${bgIndex}.png`;
+  const testImg = new Image();
+  _bgTestImg = testImg;
+  testImg.onload = () => {
+    if (_bgTestImg !== testImg) return; // キャンセル済みなら無視
+    panel.style.backgroundImage = `url('${bgPath}')`;
+    panel.style.backgroundSize = 'cover';
+    panel.style.backgroundPosition = 'center';
+  };
+  testImg.onerror = () => {
+    if (_bgTestImg !== testImg) return; // キャンセル済みなら無視
     panel.style.backgroundImage = '';
     panel.style.backgroundSize = '';
     panel.style.backgroundPosition = '';
-  } else {
-    const bgIndex = Math.min(cycleCount, 10);
-    const bgPath = `images/flowers_bg/flowers_bg_${bgIndex}.png`;
-    const testImg = new Image();
-    _bgTestImg = testImg;
-    testImg.onload = () => {
-      if (_bgTestImg !== testImg) return; // キャンセル済みなら無視
-      panel.style.backgroundImage = `url('${bgPath}')`;
-      panel.style.backgroundSize = 'cover';
-      panel.style.backgroundPosition = 'center';
-    };
-    testImg.onerror = () => {
-      if (_bgTestImg !== testImg) return; // キャンセル済みなら無視
-      panel.style.backgroundImage = '';
-      panel.style.backgroundSize = '';
-      panel.style.backgroundPosition = '';
-    };
-    testImg.src = bgPath;
-  }
+  };
+  testImg.src = bgPath;
 }
 
 function starHTML(n, color) {
