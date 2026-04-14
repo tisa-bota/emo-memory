@@ -441,13 +441,15 @@ textarea::placeholder { color: #c8baaa; }
   display: none;
   background-color: var(--paper);
   background-image: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
-  border-radius: 20px; padding: 16px; box-shadow: 0 2px 10px var(--shadow);
-  margin-bottom: 0; text-align: center; overflow: hidden;
+  border-radius: 20px; box-shadow: 0 2px 10px var(--shadow);
+  margin-bottom: 0; overflow: hidden;
+  height: 220px; position: relative;
 }
 .flower-panel.on { display: block; }
 .flower-panel-img {
   width: 160px; height: 160px; object-fit: contain;
-  display: block; margin: 0 auto;
+  display: block;
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
 }
 .flower-info-bar {
   display: none; align-items: center; gap: 10px;
