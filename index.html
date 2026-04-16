@@ -194,7 +194,7 @@ header {
 .eb[data-e="嬉しい"].on .lbl { color:#f0b830; }
 .eb[data-e="悲しい"].on .lbl { color:#6098d8; }
 .eb[data-e="怒り"].on   .lbl { color:#e05858; }
-.eb[data-e="驚き"].on   .lbl { color:#f09040; }
+.eb[data-e="エモい"].on   .lbl { color:#f09040; }
 .eb[data-e="不安"].on   .lbl { color:#9070d0; }
 .eb[data-e="楽しい"].on   .lbl { color:#f070a8; }
 .eb[data-e="好き"].on   .lbl { color:#90c840; }
@@ -209,7 +209,7 @@ header {
 .eb[data-e="嬉しい"].on { background:#fffaee; border-color:#f0b830; }
 .eb[data-e="悲しい"].on { background:#eef3fb; border-color:#6098d8; }
 .eb[data-e="怒り"].on   { background:#fdf2f2; border-color:#e05858; }
-.eb[data-e="驚き"].on   { background:#fff6ee; border-color:#f09040; }
+.eb[data-e="エモい"].on   { background:#fff6ee; border-color:#f09040; }
 .eb[data-e="不安"].on   { background:#f5f0fc; border-color:#9070d0; }
 .eb[data-e="楽しい"].on   { background:#fdf0f7; border-color:#f070a8; }
 .eb[data-e="好き"].on   { background:#f4fbee; border-color:#90c840; }
@@ -313,7 +313,7 @@ textarea::placeholder { color: #c8baaa; }
 .chip[data-f="嬉しい"].on { background:#fffaee; color:#f0b830; border-color:#f0b830; }
 .chip[data-f="悲しい"].on { background:#eef3fb; color:#6098d8; border-color:#6098d8; }
 .chip[data-f="怒り"].on   { background:#fdf2f2; color:#e05858; border-color:#e05858; }
-.chip[data-f="驚き"].on   { background:#fff6ee; color:#f09040; border-color:#f09040; }
+.chip[data-f="エモい"].on   { background:#fff6ee; color:#f09040; border-color:#f09040; }
 .chip[data-f="不安"].on   { background:#f5f0fc; color:#9070d0; border-color:#9070d0; }
 .chip[data-f="楽しい"].on   { background:#fdf0f7; color:#f070a8; border-color:#f070a8; }
 .chip[data-f="好き"].on   { background:#f4fbee; color:#90c840; border-color:#90c840; }
@@ -581,7 +581,7 @@ textarea::placeholder { color: #c8baaa; }
           <button class="eb" data-e="嬉しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">嬉しい</span></button>
           <button class="eb" data-e="悲しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">悲しい</span></button>
           <button class="eb" data-e="怒り"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">怒り</span></button>
-          <button class="eb" data-e="驚き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">驚き</span></button>
+          <button class="eb" data-e="エモい"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">エモい</span></button>
           <button class="eb" data-e="不安"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">不安</span></button>
           <button class="eb" data-e="楽しい"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">楽しい</span></button>
           <button class="eb" data-e="好き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">好き</span></button>
@@ -955,9 +955,9 @@ const FLOWER_IMGS = {
   "怒り_2": "images/flowers_400/anger_2.png",
   "怒り_3": "images/flowers_400/anger_3.png",
   "怒り_4": "images/flowers_400/anger_4.png",
-  "驚き_2": "images/flowers_400/surprise_2.png",
-  "驚き_3": "images/flowers_400/surprise_3.png",
-  "驚き_4": "images/flowers_400/surprise_4.png",
+  "エモい_2": "images/flowers_400/surprise_2.png",
+  "エモい_3": "images/flowers_400/surprise_3.png",
+  "エモい_4": "images/flowers_400/surprise_4.png",
   "楽しい_2": "images/flowers_400/inspiration_2.png",
   "楽しい_3": "images/flowers_400/inspiration_3.png",
   "楽しい_4": "images/flowers_400/inspiration_4.png",
@@ -996,7 +996,7 @@ const EMO = {
   "嬉しい": { c:"#f0b830", bg:"#fffaee" },
   "悲しい": { c:"#6098d8", bg:"#eef3fb" },
   "怒り":   { c:"#e05858", bg:"#fdf2f2" },
-  "驚き":   { c:"#f09040", bg:"#fff6ee" },
+  "エモい":   { c:"#f09040", bg:"#fff6ee" },
   "不安":   { c:"#9070d0", bg:"#f5f0fc" },
   "楽しい": { c:"#f070a8", bg:"#fdf0f7" },
   "好き":   { c:"#90c840", bg:"#f4fbee" },
@@ -1629,7 +1629,7 @@ function getGardenStage(count) {
 
 function getGardenImgPath(emo, stage) {
   const emoKeyMap = {
-    '嬉しい':'joy','悲しい':'sad','怒り':'anger','驚き':'surprise',
+    '嬉しい':'joy','悲しい':'sad','怒り':'anger','エモい':'surprise',
     '不安':'anxiety','楽しい':'inspiration','好き':'love',
     '苦手':'dislike','願い':'wish','その他':'others'
   };
