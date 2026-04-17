@@ -1116,7 +1116,11 @@ function switchTab(id, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
   document.getElementById('s-'+id).classList.add('on');
   btn.classList.add('on');
-  if (id === 'list') { updateFlowerPanel(); renderList(); }
+  if (id === 'list') {
+    updateFlowerPanel();
+    _renderGen = 0;  // 世代リセット：iOS PWAでのIDB競合を防ぐ
+    renderList();
+  }
   if (id === 'stats') renderStats();
 }
 
@@ -1869,6 +1873,13 @@ async function importData(input) {
       entries = idbData;
       console.log('[IDB] localStorageへ復元:', idbData.length, '件');
     }
+  }
+  // flowerStats をIDBからも復元（localStorageが消えた場合への対策）
+  const idbStats = await loadFlowerStatsFromIDB();
+  if (idbStats) {
+    flowerStats = idbStats;
+    localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
+    console.log('[IDB] flowerStatsを復元');
   }
   // 旧データ「感動」→「楽しい」へ変換
   await migrateKandou();
