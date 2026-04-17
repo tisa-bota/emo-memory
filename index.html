@@ -1053,7 +1053,8 @@ let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
 let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
 let dateJumpDate = null, searchQuery = '';
 let flowerStats = JSON.parse(localStorage.getItem('kn2-flowerStats') || '{}');
-let _renderGen = 0;  // renderList() の競合防止用世代番号
+let _renderGen = 0;      // renderList() の競合防止用世代番号
+let _renderTimer = null; // renderList debounce用タイマー
 
 function onDateJump(input) {
   if (!input.value) return;
@@ -1118,8 +1119,8 @@ function switchTab(id, btn) {
   btn.classList.add('on');
   if (id === 'list') {
     updateFlowerPanel();
-    _renderGen = 0;  // 世代リセット：iOS PWAでのIDB競合を防ぐ
-    renderList();
+    _renderGen = 0;  // 世代リセット（debounce前の古い世代を無効化）
+    renderList();    // debounce経由で _doRenderList() を呼ぶ
   }
   if (id === 'stats') renderStats();
 }
@@ -1316,8 +1317,16 @@ function starHTML(n, color) {
   ).join('');
 }
 
-async function renderList() {
-  const gen = ++_renderGen;  // この呼び出しの世代番号を取得
+// renderList() をdebounceで呼ぶラッパー
+// 連続呼び出し時は最後の1回だけ実行（iOS PWAでのIDB競合を根本回避）
+function renderList() {
+  if (_renderTimer) clearTimeout(_renderTimer);
+  _renderTimer = setTimeout(_doRenderList, 50);
+}
+
+async function _doRenderList() {
+  _renderTimer = null;
+  const myGen = ++_renderGen;  // このレンダリングの世代番号
   const list = document.getElementById('elist');
   const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
   let filtered = curFilter === 'all' ? sorted : sorted.filter(e => e.emo === curFilter);
@@ -1332,7 +1341,7 @@ async function renderList() {
     );
   }
   if (!filtered.length) {
-    if (gen !== _renderGen) return;  // 古い世代なら反映しない
+    // 世代チェック不要：debounceで1回しか走らないため
     list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
     return;
   }
@@ -1342,7 +1351,8 @@ async function renderList() {
     const ph = await loadPhotoFromIDB(e.id);
     if (ph) photoMap[e.id] = ph;
   }));
-  if (gen !== _renderGen) return;  // await 後に世代が変わっていたら反映しない
+  // await後：より新しいレンダリングが始まっていたら中断
+  if (myGen !== _renderGen) return;
   list.innerHTML = filtered.map(e => {
     const d = new Date(e.date);
     const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
