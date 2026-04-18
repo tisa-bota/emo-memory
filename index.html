@@ -992,11 +992,11 @@ function getFlowerImg(emo, stage) {
 }
 
 function getStageFromStars(count) {
-  if (count === 0)  return 0;
-  if (count <= 3)   return 1;
-  if (count <= 6)   return 2;
-  if (count <= 9)   return 3;
-  return 4;
+  if (count === 0)  return 0; // 種
+  if (count <= 2)   return 1; // 双葉
+  if (count <= 4)   return 2; // 本葉
+  if (count <= 6)   return 3; // 蕾
+  return 4;                   // 満開（7〜8回）
 }
 
 const EMO = {
@@ -1199,9 +1199,9 @@ async function saveEntry() {
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   saveToIDB(entries);
 
-  // 満開検知: 10回の倍数になったら cycleCount++
+  // 満開検知: 8回の倍数になったら cycleCount++
   const emoCount = entries.filter(e => e.emo === selEmo).length;
-  if (emoCount > 0 && emoCount % 10 === 0) {
+  if (emoCount > 0 && emoCount % 8 === 0) {
     if (!flowerStats[selEmo]) flowerStats[selEmo] = { cycleCount: 0 };
     flowerStats[selEmo].cycleCount = (flowerStats[selEmo].cycleCount || 0) + 1;
     localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
@@ -1280,7 +1280,7 @@ function updateFlowerPanel() {
 
   // cycleCount / currentCount を計算
   const cycleCount = flowerStats[curFilter]?.cycleCount || 0;
-  const pct = Math.min(totalCount / 10 * 100, 100);
+  const pct = Math.min(totalCount / 8 * 100, 100);
   const bar = document.getElementById('flower-progress-bar');
   bar.style.width = pct + '%';
   bar.style.background = EMO[curFilter]?.c || '#e8883a';
@@ -1629,11 +1629,11 @@ function getGardenMonth() {
 }
 
 function getGardenStage(count) {
-  if (count === 0)  return 0;
-  if (count <= 3)   return 1;
-  if (count <= 6)   return 2;
-  if (count <= 9)   return 3;
-  return 4;
+  if (count === 0)  return 0; // 種
+  if (count <= 2)   return 1; // 双葉
+  if (count <= 4)   return 2; // 本葉
+  if (count <= 6)   return 3; // 蕾
+  return 4;                   // 満開（7〜8回）
 }
 
 function getGardenImgPath(emo, stage) {
