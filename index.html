@@ -1057,7 +1057,7 @@ let dateJumpDate = null, searchQuery = '';
 let flowerStats = JSON.parse(localStorage.getItem('kn2-flowerStats') || '{}');
 let _renderGen = 0;      // 未使用（互換のため残す）
 let _renderTimer = null; // renderList debounce用タイマー
-let _renderCancel = null; // キャンセルトークン（{cancelled:bool}）
+let _renderCancel = null; // キャンセルトークン（互換用・現在はmutex方式のため未使用）
 let _renderCallCount = 0; // デバッグ用：renderList呼び出し回数
 
 function onDateJump(input) {
@@ -1320,20 +1320,25 @@ function starHTML(n, color) {
   ).join('');
 }
 
-// renderList() — debounce＋キャンセルトークン方式
-// 連続呼び出し時は最後の1回だけ実行。
-// _renderGen / 世代チェックは廃止（await中に外部から変更されると誤SKIPするため）
+// renderList() — mutex方式
+// 実行中のawaitがある間は「pending」フラグを立てて1回だけ再実行する。
+// debounce + キャンセルトークン方式は廃止（awaitを挟むと競合が起きやすいため）。
+let _renderRunning = false;
+let _renderPending = false;
+
 function renderList() {
   _renderCallCount++;
-  if (_renderTimer) clearTimeout(_renderTimer);
-  // 現在実行中のレンダリングがあればキャンセル
-  if (_renderCancel) _renderCancel.cancelled = true;
-  _renderTimer = setTimeout(_doRenderList, 80);
+  if (_renderRunning) {
+    // 現在awaitで実行中 → 完了後に再実行するフラグを立てるだけ
+    _renderPending = true;
+    return;
+  }
+  _doRenderList();
 }
 
 async function _doRenderList() {
-  _renderTimer = null;
-  // 自分用のキャンセルトークンを発行
+  _renderRunning = true;
+  _renderPending = false;
   const token = { cancelled: false };
   _renderCancel = token;
 
@@ -1378,8 +1383,9 @@ async function _doRenderList() {
   dbgShow('▶ _doRenderList\n' + dbgInfo + `\nfiltered.length=${filtered.length}`);
 
   if (!filtered.length) {
-    if (token.cancelled) return;
+    if (token.cancelled) { _renderRunning = false; if (_renderPending) { _renderPending = false; _doRenderList(); } return; }
     list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
+    _renderRunning = false; if (_renderPending) { _renderPending = false; _doRenderList(); }
     return;
   }
 
@@ -1390,9 +1396,14 @@ async function _doRenderList() {
     if (ph) photoMap[e.id] = ph;
   }));
 
-  // await後：新しい renderList() が呼ばれていたらキャンセル
-  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\ncancelled=${token.cancelled}\ncallCount=${_renderCallCount}\n→ ${token.cancelled ? 'SKIP' : 'RENDER OK'}`);
-  if (token.cancelled) return;
+  // await後：pendingが立っていたら（= await中に新しいrenderListが来た）最新状態で再実行
+  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\ncancelled=${token.cancelled}\ncallCount=${_renderCallCount}\n→ ${_renderPending ? 'PENDING→再実行' : 'RENDER OK'}`);
+  if (_renderPending) {
+    _renderRunning = false;
+    _renderPending = false;
+    _doRenderList();
+    return;
+  }
 
   list.innerHTML = filtered.map(e => {
     const d = new Date(e.date);
@@ -1446,6 +1457,13 @@ async function _doRenderList() {
       `inner[0..80]=${inner.slice(0,80)}`
     );
   }, 0);
+
+  // mutex解放。pendingがあれば再実行（await中に来た呼び出しを反映）
+  _renderRunning = false;
+  if (_renderPending) {
+    _renderPending = false;
+    _doRenderList();
+  }
 }
 
 let modalEntryId = null;
