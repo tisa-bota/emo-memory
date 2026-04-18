@@ -1398,7 +1398,7 @@ async function _doRenderList() {
     const thumb = photoMap[e.id] ? `<img class="ecard-thumb" src="${photoMap[e.id]}">` : '';
     return `<div class="ecard" style="border-left-color:${EMO[e.emo].c}" onclick="openModal(${e.id})">
       <div class="ecard-top">
-        <span class="ecard-sym sym-dot" style="width:20px;height:20px">${wcDotSVG(EMO[e.emo].c,20)}</span>
+        <span class="ecard-sym" style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center"><span style="width:12px;height:12px;border-radius:50%;background:${EMO[e.emo].c};display:inline-block;opacity:0.85"></span></span>
         <span class="ecard-name" style="color:${EMO[e.emo].c}">${e.emo}</span>
         <span class="ecard-stars">${starHTML(e.star, EMO[e.emo].c)}</span>
         <span class="ecard-date">${ds}</span>
