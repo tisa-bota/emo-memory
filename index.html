@@ -1055,8 +1055,9 @@ let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
 let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
 let dateJumpDate = null, searchQuery = '';
 let flowerStats = JSON.parse(localStorage.getItem('kn2-flowerStats') || '{}');
-let _renderGen = 0;      // renderList() の競合防止用世代番号
+let _renderGen = 0;      // 未使用（互換のため残す）
 let _renderTimer = null; // renderList debounce用タイマー
+let _renderCancel = null; // キャンセルトークン（{cancelled:bool}）
 
 function onDateJump(input) {
   if (!input.value) return;
@@ -1121,8 +1122,7 @@ function switchTab(id, btn) {
   btn.classList.add('on');
   if (id === 'list') {
     updateFlowerPanel();
-    _renderGen = 0;  // 世代リセット（debounce前の古い世代を無効化）
-    renderList();    // debounce経由で _doRenderList() を呼ぶ
+    renderList();
   }
   if (id === 'stats') renderStats();
 }
@@ -1319,16 +1319,22 @@ function starHTML(n, color) {
   ).join('');
 }
 
-// renderList() をdebounceで呼ぶラッパー
-// 連続呼び出し時は最後の1回だけ実行（iOS PWAでのIDB競合を根本回避）
+// renderList() — debounce＋キャンセルトークン方式
+// 連続呼び出し時は最後の1回だけ実行。
+// _renderGen / 世代チェックは廃止（await中に外部から変更されると誤SKIPするため）
 function renderList() {
   if (_renderTimer) clearTimeout(_renderTimer);
-  _renderTimer = setTimeout(_doRenderList, 50);
+  // 現在実行中のレンダリングがあればキャンセル
+  if (_renderCancel) _renderCancel.cancelled = true;
+  _renderTimer = setTimeout(_doRenderList, 80);
 }
 
 async function _doRenderList() {
   _renderTimer = null;
-  const myGen = ++_renderGen;  // このレンダリングの世代番号
+  // 自分用のキャンセルトークンを発行
+  const token = { cancelled: false };
+  _renderCancel = token;
+
   const list = document.getElementById('elist');
 
   // ===== デバッグ表示 =====
@@ -1345,7 +1351,6 @@ async function _doRenderList() {
     el.textContent = msg;
   }
   const dbgInfo = [
-    `gen=${myGen}/_renderGen=${_renderGen}`,
     `entries.length=${entries.length}`,
     `curFilter=${curFilter}`,
     `dateJumpDate=${dateJumpDate}`,
@@ -1371,19 +1376,22 @@ async function _doRenderList() {
   dbgShow('▶ _doRenderList\n' + dbgInfo + `\nfiltered.length=${filtered.length}`);
 
   if (!filtered.length) {
-    // 世代チェック不要：debounceで1回しか走らないため
+    if (token.cancelled) return;
     list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
     return;
   }
+
   // 写真を一括取得
   const photoMap = {};
   await Promise.all(filtered.map(async e => {
     const ph = await loadPhotoFromIDB(e.id);
     if (ph) photoMap[e.id] = ph;
   }));
-  // await後：より新しいレンダリングが始まっていたら中断
-  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\nmyGen=${myGen} _renderGen=${_renderGen}\n→ ${myGen !== _renderGen ? 'SKIP（世代不一致）' : 'RENDER OK'}`);
-  if (myGen !== _renderGen) return;
+
+  // await後：新しい renderList() が呼ばれていたらキャンセル
+  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\ncancelled=${token.cancelled}\n→ ${token.cancelled ? 'SKIP' : 'RENDER OK'}`);
+  if (token.cancelled) return;
+
   list.innerHTML = filtered.map(e => {
     const d = new Date(e.date);
     const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
@@ -1399,8 +1407,10 @@ async function _doRenderList() {
       ${thumb}
     </div>`;
   }).join('');
+
   // ===== innerHTML書き込み直後のDOM状態デバッグ =====
   setTimeout(() => {
+    if (token.cancelled) return;
     const listEl = document.getElementById('elist');
     const sList = document.getElementById('s-list');
     const wrap = document.querySelector('.wrap');
