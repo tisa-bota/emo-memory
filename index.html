@@ -1058,6 +1058,7 @@ let flowerStats = JSON.parse(localStorage.getItem('kn2-flowerStats') || '{}');
 let _renderGen = 0;      // 未使用（互換のため残す）
 let _renderTimer = null; // renderList debounce用タイマー
 let _renderCancel = null; // キャンセルトークン（{cancelled:bool}）
+let _renderCallCount = 0; // デバッグ用：renderList呼び出し回数
 
 function onDateJump(input) {
   if (!input.value) return;
@@ -1323,6 +1324,7 @@ function starHTML(n, color) {
 // 連続呼び出し時は最後の1回だけ実行。
 // _renderGen / 世代チェックは廃止（await中に外部から変更されると誤SKIPするため）
 function renderList() {
+  _renderCallCount++;
   if (_renderTimer) clearTimeout(_renderTimer);
   // 現在実行中のレンダリングがあればキャンセル
   if (_renderCancel) _renderCancel.cancelled = true;
@@ -1389,7 +1391,7 @@ async function _doRenderList() {
   }));
 
   // await後：新しい renderList() が呼ばれていたらキャンセル
-  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\ncancelled=${token.cancelled}\n→ ${token.cancelled ? 'SKIP' : 'RENDER OK'}`);
+  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\ncancelled=${token.cancelled}\ncallCount=${_renderCallCount}\n→ ${token.cancelled ? 'SKIP' : 'RENDER OK'}`);
   if (token.cancelled) return;
 
   list.innerHTML = filtered.map(e => {
@@ -1408,27 +1410,42 @@ async function _doRenderList() {
     </div>`;
   }).join('');
 
+  // ===== innerHTML書き込み直後：同期デバッグ（タイミング問題の切り分け）=====
+  {
+    const listEl = document.getElementById('elist');
+    dbgShow(
+      `▶ innerHTML書込【同期直後】\n` +
+      `children=${listEl?.children.length}\n` +
+      `offsetH=${listEl?.offsetHeight}\n` +
+      `BCR.h=${Math.round(listEl?.getBoundingClientRect().height)}\n` +
+      `cancelled=${token.cancelled}\n` +
+      `callCount=${_renderCallCount}\n` +
+      `inner[0..60]=${(listEl?.innerHTML||'').slice(0,60)}`
+    );
+  }
+
   // ===== innerHTML書き込み直後のDOM状態デバッグ =====
+  // ※ token.cancelledチェックなし・0ms・innerHTML先頭も表示
   setTimeout(() => {
-    if (token.cancelled) return;
     const listEl = document.getElementById('elist');
     const sList = document.getElementById('s-list');
     const wrap = document.querySelector('.wrap');
+    const inner = listEl?.innerHTML || '';
     dbgShow(
-      `▶ innerHTML書込完了\n` +
+      `▶ innerHTML書込完了[cancelled=${token.cancelled}]\n` +
       `list.children.length=${listEl?.children.length}\n` +
       `list.offsetHeight=${listEl?.offsetHeight}\n` +
       `list.scrollHeight=${listEl?.scrollHeight}\n` +
-      `list.style.display="${listEl?.style.display}"\n` +
       `list.getBCR.top=${Math.round(listEl?.getBoundingClientRect().top)}\n` +
       `list.getBCR.height=${Math.round(listEl?.getBoundingClientRect().height)}\n` +
       `s-list.offsetHeight=${sList?.offsetHeight}\n` +
       `s-list.scrollHeight=${sList?.scrollHeight}\n` +
       `wrap.offsetHeight=${wrap?.offsetHeight}\n` +
       `wrap.scrollTop=${wrap?.scrollTop}\n` +
-      `window.innerHeight=${window.innerHeight}`
+      `window.innerHeight=${window.innerHeight}\n` +
+      `inner[0..80]=${inner.slice(0,80)}`
     );
-  }, 100);
+  }, 0);
 }
 
 let modalEntryId = null;
