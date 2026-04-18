@@ -194,7 +194,7 @@ header {
 .eb[data-e="嬉しい"].on .lbl { color:#f0b830; }
 .eb[data-e="悲しい"].on .lbl { color:#6098d8; }
 .eb[data-e="怒り"].on   .lbl { color:#e05858; }
-.eb[data-e="エモい"].on   .lbl { color:#f09040; }
+.eb[data-e="驚き"].on   .lbl { color:#f09040; }
 .eb[data-e="不安"].on   .lbl { color:#9070d0; }
 .eb[data-e="楽しい"].on   .lbl { color:#f070a8; }
 .eb[data-e="好き"].on   .lbl { color:#90c840; }
@@ -209,7 +209,7 @@ header {
 .eb[data-e="嬉しい"].on { background:#fffaee; border-color:#f0b830; }
 .eb[data-e="悲しい"].on { background:#eef3fb; border-color:#6098d8; }
 .eb[data-e="怒り"].on   { background:#fdf2f2; border-color:#e05858; }
-.eb[data-e="エモい"].on   { background:#fff6ee; border-color:#f09040; }
+.eb[data-e="驚き"].on   { background:#fff6ee; border-color:#f09040; }
 .eb[data-e="不安"].on   { background:#f5f0fc; border-color:#9070d0; }
 .eb[data-e="楽しい"].on   { background:#fdf0f7; border-color:#f070a8; }
 .eb[data-e="好き"].on   { background:#f4fbee; border-color:#90c840; }
@@ -313,7 +313,7 @@ textarea::placeholder { color: #c8baaa; }
 .chip[data-f="嬉しい"].on { background:#fffaee; color:#f0b830; border-color:#f0b830; }
 .chip[data-f="悲しい"].on { background:#eef3fb; color:#6098d8; border-color:#6098d8; }
 .chip[data-f="怒り"].on   { background:#fdf2f2; color:#e05858; border-color:#e05858; }
-.chip[data-f="エモい"].on   { background:#fff6ee; color:#f09040; border-color:#f09040; }
+.chip[data-f="驚き"].on   { background:#fff6ee; color:#f09040; border-color:#f09040; }
 .chip[data-f="不安"].on   { background:#f5f0fc; color:#9070d0; border-color:#9070d0; }
 .chip[data-f="楽しい"].on   { background:#fdf0f7; color:#f070a8; border-color:#f070a8; }
 .chip[data-f="好き"].on   { background:#f4fbee; color:#90c840; border-color:#90c840; }
@@ -324,10 +324,9 @@ textarea::placeholder { color: #c8baaa; }
 .ecard {
   background: var(--paper); border-radius: 18px; padding: 13px 14px; margin-bottom: 9px;
   box-shadow: 0 2px 10px var(--shadow); border-left: 4px solid var(--border);
-  cursor: pointer; transition: box-shadow .18s, transform .18s;
-  /* animation: fadeUp を削除 — iOS PWAでopacity:0のまま固まるバグ回避 */
+  cursor: pointer; transition: all .18s; animation: fadeUp .3s ease;
 }
-/* @keyframes fadeUp は削除 */
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 .ecard:hover { transform: translateY(-2px); box-shadow: 0 6px 18px var(--shadow); }
 .ecard-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
 .ecard-sym { font-size: 18px; line-height: 1; }
@@ -582,7 +581,7 @@ textarea::placeholder { color: #c8baaa; }
           <button class="eb" data-e="嬉しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">嬉しい</span></button>
           <button class="eb" data-e="悲しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">悲しい</span></button>
           <button class="eb" data-e="怒り"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">怒り</span></button>
-          <button class="eb" data-e="エモい"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">エモい</span></button>
+          <button class="eb" data-e="驚き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">驚き</span></button>
           <button class="eb" data-e="不安"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">不安</span></button>
           <button class="eb" data-e="楽しい"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">楽しい</span></button>
           <button class="eb" data-e="好き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">好き</span></button>
@@ -883,22 +882,13 @@ async function loadAllPhotosFromIDB() {
 
 // 旧データ移行：「感動」→「楽しい」へ変換
 async function migrateKandou() {
-  const changed = entries.filter(e => e.emo === '感動' || e.emo === '驚き');
+  const changed = entries.filter(e => e.emo === '感動');
   if (changed.length === 0) return;
-  entries = entries.map(e => {
-    if (e.emo === '感動') return { ...e, emo: '楽しい' };
-    if (e.emo === '驚き') return { ...e, emo: 'エモい' };
-    return e;
-  });
+  entries = entries.map(e => e.emo === '感動' ? { ...e, emo: '楽しい' } : e);
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   await saveToIDB(entries);
-  const k = changed.filter(e=>e.emo==='感動').length;
-  const o = changed.filter(e=>e.emo==='驚き').length;
-  const msgs = [];
-  if (k > 0) msgs.push(`「感動」→「楽しい」${k}件`);
-  if (o > 0) msgs.push(`「驚き」→「エモい」${o}件`);
-  console.log(`[migrate] ${msgs.join(' / ')}`);
-  showToast(`✓ 旧データを移行しました（${msgs.join(' / ')}）`);
+  console.log(`[migrate] 「感動」→「楽しい」に変換: ${changed.length}件`);
+  showToast(`✓ 旧データを移行しました（${changed.length}件）`);
 }
 
 // 旧データ移行：entry.photo が残っていたら photosストアへ移動
@@ -965,9 +955,9 @@ const FLOWER_IMGS = {
   "怒り_2": "images/flowers_400/anger_2.png",
   "怒り_3": "images/flowers_400/anger_3.png",
   "怒り_4": "images/flowers_400/anger_4.png",
-  "エモい_2": "images/flowers_400/surprise_2.png",
-  "エモい_3": "images/flowers_400/surprise_3.png",
-  "エモい_4": "images/flowers_400/surprise_4.png",
+  "驚き_2": "images/flowers_400/surprise_2.png",
+  "驚き_3": "images/flowers_400/surprise_3.png",
+  "驚き_4": "images/flowers_400/surprise_4.png",
   "楽しい_2": "images/flowers_400/inspiration_2.png",
   "楽しい_3": "images/flowers_400/inspiration_3.png",
   "楽しい_4": "images/flowers_400/inspiration_4.png",
@@ -1006,7 +996,7 @@ const EMO = {
   "嬉しい": { c:"#f0b830", bg:"#fffaee" },
   "悲しい": { c:"#6098d8", bg:"#eef3fb" },
   "怒り":   { c:"#e05858", bg:"#fdf2f2" },
-  "エモい":   { c:"#f09040", bg:"#fff6ee" },
+  "驚き":   { c:"#f09040", bg:"#fff6ee" },
   "不安":   { c:"#9070d0", bg:"#f5f0fc" },
   "楽しい": { c:"#f070a8", bg:"#fdf0f7" },
   "好き":   { c:"#90c840", bg:"#f4fbee" },
@@ -1015,7 +1005,6 @@ const EMO = {
   "その他": { c:"#60b8d8", bg:"#eef7fb" },
 };
 
-let _wcIdCnt = 0;  // SVGフィルターID衝突防止カウンター
 function wcDotSVG(color, size = 28) {
   const s = size;
   const r = s / 2;
@@ -1038,7 +1027,7 @@ function wcDotSVG(color, size = 28) {
   const hi = `<ellipse cx="${r*0.72}" cy="${r*0.68}" rx="${r*0.28}" ry="${r*0.18}" fill="white" opacity="0.38"/>`;
   const edge = `<circle cx="${r}" cy="${r}" r="${r*0.82}" fill="none" stroke="${color}" stroke-width="${r*0.22}" opacity="0.12"/>`;
 
-  const fid = `wc${++_wcIdCnt}`;
+  const fid = `wc${h}s${s}`;
   return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <filter id="${fid}" x="-20%" y="-20%" width="140%" height="140%">
@@ -1064,10 +1053,7 @@ let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
 let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
 let dateJumpDate = null, searchQuery = '';
 let flowerStats = JSON.parse(localStorage.getItem('kn2-flowerStats') || '{}');
-let _renderGen = 0;      // 未使用（互換のため残す）
-let _renderTimer = null; // renderList debounce用タイマー
-let _renderCancel = null; // キャンセルトークン（互換用・現在はmutex方式のため未使用）
-let _renderCallCount = 0; // デバッグ用：renderList呼び出し回数
+let _renderGen = 0;  // renderList() の競合防止用世代番号
 
 function onDateJump(input) {
   if (!input.value) return;
@@ -1130,10 +1116,7 @@ function switchTab(id, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
   document.getElementById('s-'+id).classList.add('on');
   btn.classList.add('on');
-  if (id === 'list') {
-    updateFlowerPanel();
-    renderList();
-  }
+  if (id === 'list') { updateFlowerPanel(); renderList(); }
   if (id === 'stats') renderStats();
 }
 
@@ -1329,53 +1312,9 @@ function starHTML(n, color) {
   ).join('');
 }
 
-// renderList() — mutex方式
-// 実行中のawaitがある間は「pending」フラグを立てて1回だけ再実行する。
-// debounce + キャンセルトークン方式は廃止（awaitを挟むと競合が起きやすいため）。
-let _renderRunning = false;
-let _renderPending = false;
-
-function renderList() {
-  _renderCallCount++;
-  if (_renderRunning) {
-    // 現在awaitで実行中 → 完了後に再実行するフラグを立てるだけ
-    _renderPending = true;
-    return;
-  }
-  _doRenderList();
-}
-
-async function _doRenderList() {
-  _renderRunning = true;
-  _renderPending = false;
-  const token = { cancelled: false };
-  _renderCancel = token;
-
+async function renderList() {
+  const gen = ++_renderGen;  // この呼び出しの世代番号を取得
   const list = document.getElementById('elist');
-
-  // ===== デバッグ表示 =====
-  function dbgShow(msg) {
-    let el = document.getElementById('_dbg_overlay');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = '_dbg_overlay';
-      el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;font-family:monospace;padding:6px 8px;white-space:pre-wrap;max-height:40vh;overflow:auto;pointer-events:all;cursor:pointer';
-      el.title = 'タップで閉じる';
-      el.addEventListener('click', () => el.remove());
-      document.body.appendChild(el);
-    }
-    el.textContent = msg;
-  }
-  const dbgInfo = [
-    `entries.length=${entries.length}`,
-    `curFilter=${curFilter}`,
-    `dateJumpDate=${dateJumpDate}`,
-    `searchQuery="${searchQuery}"`,
-    `list=` + (list ? 'OK' : 'NULL'),
-  ].join('\n');
-  dbgShow('▶ _doRenderList\n' + dbgInfo);
-  // ===== デバッグ表示ここまで =====
-
   const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
   let filtered = curFilter === 'all' ? sorted : sorted.filter(e => e.emo === curFilter);
   if (dateJumpDate) {
@@ -1388,99 +1327,33 @@ async function _doRenderList() {
       (e.idea && e.idea.toLowerCase().includes(q))
     );
   }
-
-  dbgShow('▶ _doRenderList\n' + dbgInfo + `\nfiltered.length=${filtered.length}`);
-
   if (!filtered.length) {
-    if (token.cancelled) { _renderRunning = false; if (_renderPending) { _renderPending = false; _doRenderList(); } return; }
+    if (gen !== _renderGen) return;  // 古い世代なら反映しない
     list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
-    _renderRunning = false; if (_renderPending) { _renderPending = false; _doRenderList(); }
     return;
   }
-
   // 写真を一括取得
   const photoMap = {};
   await Promise.all(filtered.map(async e => {
     const ph = await loadPhotoFromIDB(e.id);
     if (ph) photoMap[e.id] = ph;
   }));
-
-  // await後：pendingが立っていたら（= await中に新しいrenderListが来た）最新状態で再実行
-  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\ncancelled=${token.cancelled}\ncallCount=${_renderCallCount}\n→ ${_renderPending ? 'PENDING→再実行' : 'RENDER OK'}\n⏳ innerHTML書き込み中...`);
-  if (_renderPending) {
-    _renderRunning = false;
-    _renderPending = false;
-    _doRenderList();
-    return;
-  }
-
-  // innerHTML書き込み（try/catchでiOS例外を捕捉）
-  let writeError = null;
-  try {
-    list.innerHTML = filtered.map(e => {
-      const d = new Date(e.date);
-      const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
-      const thumb = photoMap[e.id] ? `<img class="ecard-thumb" src="${photoMap[e.id]}">` : '';
-    const emoInfo = EMO[e.emo] || { c: '#aaa', bg: '#f5f5f5' }; // 未知のemoはグレーで表示
-      return `<div class="ecard" style="border-left-color:${emoInfo.c}" onclick="openModal(${e.id})">
+  if (gen !== _renderGen) return;  // await 後に世代が変わっていたら反映しない
+  list.innerHTML = filtered.map(e => {
+    const d = new Date(e.date);
+    const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
+    const thumb = photoMap[e.id] ? `<img class="ecard-thumb" src="${photoMap[e.id]}">` : '';
+    return `<div class="ecard" style="border-left-color:${EMO[e.emo].c}" onclick="openModal(${e.id})">
       <div class="ecard-top">
-        <span class="ecard-sym" style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center"><span style="width:12px;height:12px;border-radius:50%;background:${emoInfo.c};display:inline-block;opacity:0.85"></span></span>
-        <span class="ecard-name" style="color:${emoInfo.c}">${e.emo}</span>
-        <span class="ecard-stars">${starHTML(e.star, emoInfo.c)}</span>
+        <span class="ecard-sym sym-dot" style="width:20px;height:20px">${wcDotSVG(EMO[e.emo].c,20)}</span>
+        <span class="ecard-name" style="color:${EMO[e.emo].c}">${e.emo}</span>
+        <span class="ecard-stars">${starHTML(e.star, EMO[e.emo].c)}</span>
         <span class="ecard-date">${ds}</span>
       </div>
       <div class="ecard-text">${e.text}</div>
       ${thumb}
     </div>`;
-    }).join('');
-  } catch(err) {
-    writeError = String(err);
-  }
-
-  // ===== innerHTML書き込み直後：同期デバッグ（タイミング問題の切り分け）=====
-  {
-    const listEl = document.getElementById('elist');
-    dbgShow(
-      `▶ innerHTML書込【同期直後】\n` +
-      `children=${listEl?.children.length}\n` +
-      `offsetH=${listEl?.offsetHeight}\n` +
-      `BCR.h=${Math.round(listEl?.getBoundingClientRect().height)}\n` +
-      `cancelled=${token.cancelled}\n` +
-      `callCount=${_renderCallCount}\n` +
-      `writeError=${writeError}\n` +
-      `inner[0..60]=${(listEl?.innerHTML||'').slice(0,60)}`
-    );
-  }
-
-  // ===== innerHTML書き込み直後のDOM状態デバッグ =====
-  // ※ token.cancelledチェックなし・0ms・innerHTML先頭も表示
-  setTimeout(() => {
-    const listEl = document.getElementById('elist');
-    const sList = document.getElementById('s-list');
-    const wrap = document.querySelector('.wrap');
-    const inner = listEl?.innerHTML || '';
-    dbgShow(
-      `▶ innerHTML書込完了[cancelled=${token.cancelled}]\n` +
-      `list.children.length=${listEl?.children.length}\n` +
-      `list.offsetHeight=${listEl?.offsetHeight}\n` +
-      `list.scrollHeight=${listEl?.scrollHeight}\n` +
-      `list.getBCR.top=${Math.round(listEl?.getBoundingClientRect().top)}\n` +
-      `list.getBCR.height=${Math.round(listEl?.getBoundingClientRect().height)}\n` +
-      `s-list.offsetHeight=${sList?.offsetHeight}\n` +
-      `s-list.scrollHeight=${sList?.scrollHeight}\n` +
-      `wrap.offsetHeight=${wrap?.offsetHeight}\n` +
-      `wrap.scrollTop=${wrap?.scrollTop}\n` +
-      `window.innerHeight=${window.innerHeight}\n` +
-      `inner[0..80]=${inner.slice(0,80)}`
-    );
-  }, 0);
-
-  // mutex解放。pendingがあれば再実行（await中に来た呼び出しを反映）
-  _renderRunning = false;
-  if (_renderPending) {
-    _renderPending = false;
-    _doRenderList();
-  }
+  }).join('');
 }
 
 let modalEntryId = null;
@@ -1756,7 +1629,7 @@ function getGardenStage(count) {
 
 function getGardenImgPath(emo, stage) {
   const emoKeyMap = {
-    '嬉しい':'joy','悲しい':'sad','怒り':'anger','エモい':'surprise',
+    '嬉しい':'joy','悲しい':'sad','怒り':'anger','驚き':'surprise',
     '不安':'anxiety','楽しい':'inspiration','好き':'love',
     '苦手':'dislike','願い':'wish','その他':'others'
   };
@@ -1996,13 +1869,6 @@ async function importData(input) {
       entries = idbData;
       console.log('[IDB] localStorageへ復元:', idbData.length, '件');
     }
-  }
-  // flowerStats をIDBからも復元（localStorageが消えた場合への対策）
-  const idbStats = await loadFlowerStatsFromIDB();
-  if (idbStats) {
-    flowerStats = idbStats;
-    localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
-    console.log('[IDB] flowerStatsを復元');
   }
   // 旧データ「感動」→「楽しい」へ変換
   await migrateKandou();
