@@ -1328,6 +1328,29 @@ async function _doRenderList() {
   _renderTimer = null;
   const myGen = ++_renderGen;  // このレンダリングの世代番号
   const list = document.getElementById('elist');
+
+  // ===== デバッグ表示 =====
+  function dbgShow(msg) {
+    let el = document.getElementById('_dbg_overlay');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '_dbg_overlay';
+      el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;font-family:monospace;padding:6px 8px;white-space:pre-wrap;max-height:40vh;overflow:auto;pointer-events:none';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+  }
+  const dbgInfo = [
+    `gen=${myGen}/_renderGen=${_renderGen}`,
+    `entries.length=${entries.length}`,
+    `curFilter=${curFilter}`,
+    `dateJumpDate=${dateJumpDate}`,
+    `searchQuery="${searchQuery}"`,
+    `list=` + (list ? 'OK' : 'NULL'),
+  ].join('\n');
+  dbgShow('▶ _doRenderList\n' + dbgInfo);
+  // ===== デバッグ表示ここまで =====
+
   const sorted = [...entries].sort((a, b) => new Date(b.date) - new Date(a.date));
   let filtered = curFilter === 'all' ? sorted : sorted.filter(e => e.emo === curFilter);
   if (dateJumpDate) {
@@ -1340,6 +1363,9 @@ async function _doRenderList() {
       (e.idea && e.idea.toLowerCase().includes(q))
     );
   }
+
+  dbgShow('▶ _doRenderList\n' + dbgInfo + `\nfiltered.length=${filtered.length}`);
+
   if (!filtered.length) {
     // 世代チェック不要：debounceで1回しか走らないため
     list.innerHTML = `<div class="empty"><div class="big" style="display:flex;justify-content:center">${curFilter==='all'?'📖':wcDotSVG(EMO[curFilter]?.c||'#aaa',44)}</div><p>まだ記録がありません<br>今の気持ちを記録してみよう</p></div>`;
@@ -1352,6 +1378,7 @@ async function _doRenderList() {
     if (ph) photoMap[e.id] = ph;
   }));
   // await後：より新しいレンダリングが始まっていたら中断
+  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\nmyGen=${myGen} _renderGen=${_renderGen}\n→ ${myGen !== _renderGen ? 'SKIP（世代不一致）' : 'RENDER OK'}`);
   if (myGen !== _renderGen) return;
   list.innerHTML = filtered.map(e => {
     const d = new Date(e.date);
