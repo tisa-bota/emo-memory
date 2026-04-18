@@ -883,13 +883,22 @@ async function loadAllPhotosFromIDB() {
 
 // 旧データ移行：「感動」→「楽しい」へ変換
 async function migrateKandou() {
-  const changed = entries.filter(e => e.emo === '感動');
+  const changed = entries.filter(e => e.emo === '感動' || e.emo === '驚き');
   if (changed.length === 0) return;
-  entries = entries.map(e => e.emo === '感動' ? { ...e, emo: '楽しい' } : e);
+  entries = entries.map(e => {
+    if (e.emo === '感動') return { ...e, emo: '楽しい' };
+    if (e.emo === '驚き') return { ...e, emo: 'エモい' };
+    return e;
+  });
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   await saveToIDB(entries);
-  console.log(`[migrate] 「感動」→「楽しい」に変換: ${changed.length}件`);
-  showToast(`✓ 旧データを移行しました（${changed.length}件）`);
+  const k = changed.filter(e=>e.emo==='感動').length;
+  const o = changed.filter(e=>e.emo==='驚き').length;
+  const msgs = [];
+  if (k > 0) msgs.push(`「感動」→「楽しい」${k}件`);
+  if (o > 0) msgs.push(`「驚き」→「エモい」${o}件`);
+  console.log(`[migrate] ${msgs.join(' / ')}`);
+  showToast(`✓ 旧データを移行しました（${msgs.join(' / ')}）`);
 }
 
 // 旧データ移行：entry.photo が残っていたら photosストアへ移動
@@ -1397,7 +1406,7 @@ async function _doRenderList() {
   }));
 
   // await後：pendingが立っていたら（= await中に新しいrenderListが来た）最新状態で再実行
-  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\ncancelled=${token.cancelled}\ncallCount=${_renderCallCount}\n→ ${_renderPending ? 'PENDING→再実行' : 'RENDER OK'}`);
+  dbgShow('▶ await後\n' + dbgInfo + `\nfiltered.length=${filtered.length}\ncancelled=${token.cancelled}\ncallCount=${_renderCallCount}\n→ ${_renderPending ? 'PENDING→再実行' : 'RENDER OK'}\n⏳ innerHTML書き込み中...`);
   if (_renderPending) {
     _renderRunning = false;
     _renderPending = false;
@@ -1405,21 +1414,28 @@ async function _doRenderList() {
     return;
   }
 
-  list.innerHTML = filtered.map(e => {
-    const d = new Date(e.date);
-    const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
-    const thumb = photoMap[e.id] ? `<img class="ecard-thumb" src="${photoMap[e.id]}">` : '';
-    return `<div class="ecard" style="border-left-color:${EMO[e.emo].c}" onclick="openModal(${e.id})">
+  // innerHTML書き込み（try/catchでiOS例外を捕捉）
+  let writeError = null;
+  try {
+    list.innerHTML = filtered.map(e => {
+      const d = new Date(e.date);
+      const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
+      const thumb = photoMap[e.id] ? `<img class="ecard-thumb" src="${photoMap[e.id]}">` : '';
+    const emoInfo = EMO[e.emo] || { c: '#aaa', bg: '#f5f5f5' }; // 未知のemoはグレーで表示
+      return `<div class="ecard" style="border-left-color:${emoInfo.c}" onclick="openModal(${e.id})">
       <div class="ecard-top">
-        <span class="ecard-sym" style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center"><span style="width:12px;height:12px;border-radius:50%;background:${EMO[e.emo].c};display:inline-block;opacity:0.85"></span></span>
-        <span class="ecard-name" style="color:${EMO[e.emo].c}">${e.emo}</span>
-        <span class="ecard-stars">${starHTML(e.star, EMO[e.emo].c)}</span>
+        <span class="ecard-sym" style="width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center"><span style="width:12px;height:12px;border-radius:50%;background:${emoInfo.c};display:inline-block;opacity:0.85"></span></span>
+        <span class="ecard-name" style="color:${emoInfo.c}">${e.emo}</span>
+        <span class="ecard-stars">${starHTML(e.star, emoInfo.c)}</span>
         <span class="ecard-date">${ds}</span>
       </div>
       <div class="ecard-text">${e.text}</div>
       ${thumb}
     </div>`;
-  }).join('');
+    }).join('');
+  } catch(err) {
+    writeError = String(err);
+  }
 
   // ===== innerHTML書き込み直後：同期デバッグ（タイミング問題の切り分け）=====
   {
@@ -1431,6 +1447,7 @@ async function _doRenderList() {
       `BCR.h=${Math.round(listEl?.getBoundingClientRect().height)}\n` +
       `cancelled=${token.cancelled}\n` +
       `callCount=${_renderCallCount}\n` +
+      `writeError=${writeError}\n` +
       `inner[0..60]=${(listEl?.innerHTML||'').slice(0,60)}`
     );
   }
