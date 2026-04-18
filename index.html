@@ -194,7 +194,7 @@ header {
 .eb[data-e="嬉しい"].on .lbl { color:#f0b830; }
 .eb[data-e="悲しい"].on .lbl { color:#6098d8; }
 .eb[data-e="怒り"].on   .lbl { color:#e05858; }
-.eb[data-e="驚き"].on   .lbl { color:#f09040; }
+.eb[data-e="エモい"].on  .lbl { color:#f09040; }
 .eb[data-e="不安"].on   .lbl { color:#9070d0; }
 .eb[data-e="楽しい"].on   .lbl { color:#f070a8; }
 .eb[data-e="好き"].on   .lbl { color:#90c840; }
@@ -209,7 +209,7 @@ header {
 .eb[data-e="嬉しい"].on { background:#fffaee; border-color:#f0b830; }
 .eb[data-e="悲しい"].on { background:#eef3fb; border-color:#6098d8; }
 .eb[data-e="怒り"].on   { background:#fdf2f2; border-color:#e05858; }
-.eb[data-e="驚き"].on   { background:#fff6ee; border-color:#f09040; }
+.eb[data-e="エモい"].on  { background:#fff6ee; border-color:#f09040; }
 .eb[data-e="不安"].on   { background:#f5f0fc; border-color:#9070d0; }
 .eb[data-e="楽しい"].on   { background:#fdf0f7; border-color:#f070a8; }
 .eb[data-e="好き"].on   { background:#f4fbee; border-color:#90c840; }
@@ -313,7 +313,7 @@ textarea::placeholder { color: #c8baaa; }
 .chip[data-f="嬉しい"].on { background:#fffaee; color:#f0b830; border-color:#f0b830; }
 .chip[data-f="悲しい"].on { background:#eef3fb; color:#6098d8; border-color:#6098d8; }
 .chip[data-f="怒り"].on   { background:#fdf2f2; color:#e05858; border-color:#e05858; }
-.chip[data-f="驚き"].on   { background:#fff6ee; color:#f09040; border-color:#f09040; }
+.chip[data-f="エモい"].on  { background:#fff6ee; color:#f09040; border-color:#f09040; }
 .chip[data-f="不安"].on   { background:#f5f0fc; color:#9070d0; border-color:#9070d0; }
 .chip[data-f="楽しい"].on   { background:#fdf0f7; color:#f070a8; border-color:#f070a8; }
 .chip[data-f="好き"].on   { background:#f4fbee; color:#90c840; border-color:#90c840; }
@@ -581,7 +581,7 @@ textarea::placeholder { color: #c8baaa; }
           <button class="eb" data-e="嬉しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">嬉しい</span></button>
           <button class="eb" data-e="悲しい" onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">悲しい</span></button>
           <button class="eb" data-e="怒り"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">怒り</span></button>
-          <button class="eb" data-e="驚き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">驚き</span></button>
+          <button class="eb" data-e="エモい"  onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">エモい</span></button>
           <button class="eb" data-e="不安"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">不安</span></button>
           <button class="eb" data-e="楽しい"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">楽しい</span></button>
           <button class="eb" data-e="好き"   onclick="pickEmo(this)"><span class="sym"></span><span class="lbl">好き</span></button>
@@ -880,15 +880,22 @@ async function loadAllPhotosFromIDB() {
   } catch(e) { return {}; }
 }
 
-// 旧データ移行：「感動」→「楽しい」へ変換
+// 旧データ移行：「感動」→「楽しい」、「驚き」→「エモい」へ変換
 async function migrateKandou() {
-  const changed = entries.filter(e => e.emo === '感動');
-  if (changed.length === 0) return;
-  entries = entries.map(e => e.emo === '感動' ? { ...e, emo: '楽しい' } : e);
+  const kandou = entries.filter(e => e.emo === '感動');
+  const odoroki = entries.filter(e => e.emo === '驚き');
+  if (kandou.length === 0 && odoroki.length === 0) return;
+  entries = entries.map(e => {
+    if (e.emo === '感動') return { ...e, emo: '楽しい' };
+    if (e.emo === '驚き') return { ...e, emo: 'エモい' };
+    return e;
+  });
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   await saveToIDB(entries);
-  console.log(`[migrate] 「感動」→「楽しい」に変換: ${changed.length}件`);
-  showToast(`✓ 旧データを移行しました（${changed.length}件）`);
+  if (kandou.length > 0) console.log(`[migrate] 「感動」→「楽しい」に変換: ${kandou.length}件`);
+  if (odoroki.length > 0) console.log(`[migrate] 「驚き」→「エモい」に変換: ${odoroki.length}件`);
+  const total = kandou.length + odoroki.length;
+  showToast(`✓ 旧データを移行しました（${total}件）`);
 }
 
 // 旧データ移行：entry.photo が残っていたら photosストアへ移動
@@ -955,9 +962,9 @@ const FLOWER_IMGS = {
   "怒り_2": "images/flowers_400/anger_2.png",
   "怒り_3": "images/flowers_400/anger_3.png",
   "怒り_4": "images/flowers_400/anger_4.png",
-  "驚き_2": "images/flowers_400/surprise_2.png",
-  "驚き_3": "images/flowers_400/surprise_3.png",
-  "驚き_4": "images/flowers_400/surprise_4.png",
+  "エモい_2": "images/flowers_400/surprise_2.png",
+  "エモい_3": "images/flowers_400/surprise_3.png",
+  "エモい_4": "images/flowers_400/surprise_4.png",
   "楽しい_2": "images/flowers_400/inspiration_2.png",
   "楽しい_3": "images/flowers_400/inspiration_3.png",
   "楽しい_4": "images/flowers_400/inspiration_4.png",
@@ -996,7 +1003,7 @@ const EMO = {
   "嬉しい": { c:"#f0b830", bg:"#fffaee" },
   "悲しい": { c:"#6098d8", bg:"#eef3fb" },
   "怒り":   { c:"#e05858", bg:"#fdf2f2" },
-  "驚き":   { c:"#f09040", bg:"#fff6ee" },
+  "エモい":  { c:"#f09040", bg:"#fff6ee" },
   "不安":   { c:"#9070d0", bg:"#f5f0fc" },
   "楽しい": { c:"#f070a8", bg:"#fdf0f7" },
   "好き":   { c:"#90c840", bg:"#f4fbee" },
@@ -1343,11 +1350,12 @@ async function renderList() {
     const d = new Date(e.date);
     const ds = `${d.getMonth()+1}/${d.getDate()} ${'日月火水木金土'[d.getDay()]}`;
     const thumb = photoMap[e.id] ? `<img class="ecard-thumb" src="${photoMap[e.id]}">` : '';
-    return `<div class="ecard" style="border-left-color:${EMO[e.emo].c}" onclick="openModal(${e.id})">
+    const emoData = EMO[e.emo] || { c: '#aaa', bg: '#f5f5f5' };
+    return `<div class="ecard" style="border-left-color:${emoData.c}" onclick="openModal(${e.id})">
       <div class="ecard-top">
-        <span class="ecard-sym sym-dot" style="width:20px;height:20px">${wcDotSVG(EMO[e.emo].c,20)}</span>
-        <span class="ecard-name" style="color:${EMO[e.emo].c}">${e.emo}</span>
-        <span class="ecard-stars">${starHTML(e.star, EMO[e.emo].c)}</span>
+        <span class="ecard-sym sym-dot" style="width:20px;height:20px">${wcDotSVG(emoData.c,20)}</span>
+        <span class="ecard-name" style="color:${emoData.c}">${e.emo}</span>
+        <span class="ecard-stars">${starHTML(e.star, emoData.c)}</span>
         <span class="ecard-date">${ds}</span>
       </div>
       <div class="ecard-text">${e.text}</div>
@@ -1362,11 +1370,12 @@ let editEmo = null, editStar = 3, editPhotoUrl = null;
 async function openModal(id) {
   modalEntryId = id;
   const e = entries.find(x => x.id === id); if (!e) return;
+  const emoData = EMO[e.emo] || { c: '#aaa', bg: '#f5f5f5' };
   const d = new Date(e.date);
-  document.getElementById('m-sym').innerHTML = `<span class="sym-dot" style="width:36px;height:36px">${wcDotSVG(EMO[e.emo].c,36)}</span>`;
+  document.getElementById('m-sym').innerHTML = `<span class="sym-dot" style="width:36px;height:36px">${wcDotSVG(emoData.c,36)}</span>`;
   document.getElementById('m-name').textContent = e.emo;
-  document.getElementById('m-name').style.color = EMO[e.emo].c;
-  document.getElementById('m-stars').innerHTML = starHTML(e.star, EMO[e.emo].c);
+  document.getElementById('m-name').style.color = emoData.c;
+  document.getElementById('m-stars').innerHTML = starHTML(e.star, emoData.c);
   document.getElementById('m-dt').textContent =
     `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   document.getElementById('m-txt').textContent = e.text;
@@ -1593,7 +1602,7 @@ function renderStats() {
     : '<span style="font-size:12px;color:var(--text-light)">まだ記録がありません</span>';
   const ideas = entries.filter(e => e.idea).slice(0,6);
   document.getElementById('idea-list').innerHTML = ideas.length
-    ? ideas.map(e => `<div class="idea-item"><span class="sym-dot" style="width:14px;height:14px;vertical-align:middle;margin-right:4px">${wcDotSVG(EMO[e.emo].c,14)}</span>${e.idea}</div>`).join('')
+    ? ideas.map(e => `<div class="idea-item"><span class="sym-dot" style="width:14px;height:14px;vertical-align:middle;margin-right:4px">${wcDotSVG((EMO[e.emo]||{c:'#aaa'}).c,14)}</span>${e.idea}</div>`).join('')
     : '<p style="font-size:12px;color:var(--text-light)">「アイデアの種」を書くとここに集まります 🌱</p>';
 }
 
@@ -1629,7 +1638,7 @@ function getGardenStage(count) {
 
 function getGardenImgPath(emo, stage) {
   const emoKeyMap = {
-    '嬉しい':'joy','悲しい':'sad','怒り':'anger','驚き':'surprise',
+    '嬉しい':'joy','悲しい':'sad','怒り':'anger','エモい':'surprise',
     '不安':'anxiety','楽しい':'inspiration','好き':'love',
     '苦手':'dislike','願い':'wish','その他':'others'
   };
