@@ -992,11 +992,13 @@ function getFlowerImg(emo, stage) {
 }
 
 function getStageFromStars(count) {
-  if (count === 0)  return 0; // 種
-  if (count <= 2)   return 1; // 双葉
-  if (count <= 4)   return 2; // 本葉
-  if (count <= 6)   return 3; // 蕾
-  return 4;                   // 満開（7〜8回）
+  if (count === 0) return 0; // 種
+  const rem = count % 8;     // 周回後は余りで判定
+  if (rem === 0) return 4;   // 8の倍数 = 満開
+  if (rem <= 2)  return 1;   // 双葉
+  if (rem <= 4)  return 2;   // 本葉
+  if (rem <= 6)  return 3;   // 蕾
+  return 4;                  // 満開（7〜8回）
 }
 
 const EMO = {
@@ -1280,7 +1282,8 @@ function updateFlowerPanel() {
 
   // cycleCount / currentCount を計算
   const cycleCount = flowerStats[curFilter]?.cycleCount || 0;
-  const pct = Math.min(totalCount / 8 * 100, 100);
+  const rem = totalCount % 8;
+  const pct = totalCount === 0 ? 0 : rem === 0 ? 100 : rem / 8 * 100;
   const bar = document.getElementById('flower-progress-bar');
   bar.style.width = pct + '%';
   bar.style.background = EMO[curFilter]?.c || '#e8883a';
