@@ -992,13 +992,13 @@ function getFlowerImg(emo, stage) {
 }
 
 function getStageFromStars(count) {
-  if (count === 0) return 0; // 種
-  const rem = count % 8;     // 周回後は余りで判定
-  if (rem === 0) return 4;   // 8の倍数 = 満開
-  if (rem <= 2)  return 1;   // 双葉
-  if (rem <= 4)  return 2;   // 本葉
-  if (rem <= 6)  return 3;   // 蕾
-  return 4;                  // 満開（7〜8回）
+  const rem = count % 10;
+  if (rem === 0) return 0; // 🌱 種（0回、10回、20回…）
+  if (rem <= 2)  return 1; // 🌿 双葉（1〜2、11〜12…）
+  if (rem <= 4)  return 2; // 🍃 本葉（3〜4、13〜14…）
+  if (rem <= 6)  return 3; // 🌸 蕾（5〜6、15〜16…）
+  if (rem <= 8)  return 4; // 🌼 満開（7〜8、17〜18…）
+  return 0;                // 🌱 種（9回、19回…）
 }
 
 const EMO = {
@@ -1201,9 +1201,9 @@ async function saveEntry() {
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   saveToIDB(entries);
 
-  // 満開検知: 8回の倍数になったら cycleCount++
+  // 満開検知: 10サイクル中8回目（累積8、18、28…回）に cycleCount++
   const emoCount = entries.filter(e => e.emo === selEmo).length;
-  if (emoCount > 0 && emoCount % 8 === 0) {
+  if (emoCount > 0 && emoCount % 10 === 8) {
     if (!flowerStats[selEmo]) flowerStats[selEmo] = { cycleCount: 0 };
     flowerStats[selEmo].cycleCount = (flowerStats[selEmo].cycleCount || 0) + 1;
     localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
@@ -1282,8 +1282,8 @@ function updateFlowerPanel() {
 
   // cycleCount / currentCount を計算
   const cycleCount = flowerStats[curFilter]?.cycleCount || 0;
-  const rem = totalCount % 8;
-  const pct = totalCount === 0 ? 0 : rem === 0 ? 100 : rem / 8 * 100;
+  const rem = totalCount % 10;
+  const pct = totalCount === 0 ? 0 : (rem === 0 ? 100 : rem <= 8 ? rem / 8 * 100 : 0);
   const bar = document.getElementById('flower-progress-bar');
   bar.style.width = pct + '%';
   bar.style.background = EMO[curFilter]?.c || '#e8883a';
