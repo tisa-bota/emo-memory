@@ -1203,16 +1203,13 @@ async function saveEntry() {
   localStorage.setItem('kn2-entries', JSON.stringify(entries));
   saveToIDB(entries);
 
-  // 満開検知: 10サイクル中8回目（累積8、18、28…回）に cycleCount++
+  // 満開検知: 7回目・17回目・27回目…（初めて満開ステージに入る瞬間）にトースト
   const emoCount = entries.filter(e => e.emo === selEmo).length;
-  if (emoCount > 0 && emoCount % 10 === 8) {
-    if (!flowerStats[selEmo]) flowerStats[selEmo] = { cycleCount: 0 };
-    flowerStats[selEmo].cycleCount = (flowerStats[selEmo].cycleCount || 0) + 1;
-    localStorage.setItem('kn2-flowerStats', JSON.stringify(flowerStats));
-    saveFlowerStatsToIDB(flowerStats);
-    const bloomEmo = selEmo; // closureのためキャプチャ
+  if (emoCount >= 7 && (emoCount - 7) % 10 === 0) {
+    const bloomCount = Math.floor((emoCount - 7) / 10) + 1;
+    const bloomEmo = selEmo;
     setTimeout(() => {
-      showToast(`🌸 満開達成！ステージ ${flowerStats[bloomEmo].cycleCount} へ`);
+      showToast(`🌸 満開達成！${bloomCount}本目`);
     }, 600);
   }
 
@@ -1282,8 +1279,8 @@ function updateFlowerPanel() {
   document.getElementById('flower-panel-img').src = img || '';
   document.getElementById('flower-star-count').textContent = `📝 ${totalCount}回`;
 
-  // cycleCount / currentCount を計算
-  const cycleCount = flowerStats[curFilter]?.cycleCount || 0;
+  // cycleCount: countから毎回計算（7回目で1本・17回目で2本…）
+  const cycleCount = totalCount < 7 ? 0 : Math.floor((totalCount - 7) / 10) + 1;
   const rem = totalCount % 10;
   const pct = totalCount === 0 ? 0 : (rem === 0 ? 100 : rem <= 8 ? rem / 8 * 100 : 0);
   const bar = document.getElementById('flower-progress-bar');
