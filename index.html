@@ -400,7 +400,7 @@ textarea::placeholder { color: #c8baaa; }
 .month-nav-btn:hover { background: #fff4e8; border-color: #e8883a; color: #e8883a; }
 .garden-wrap { width: 100%; overflow: hidden; border-radius: 12px; }
 .garden-bg {
-  width: 100%; min-height: 220px;
+  width: 100%;
   background: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
   position: relative;
 }
@@ -408,31 +408,28 @@ textarea::placeholder { color: #c8baaa; }
   width: 100%; display: grid;
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(2, auto);
-  padding: 8px 4px 10px; gap: 4px;
+  padding: 8px 4px 6px; gap: 2px 4px;
 }
 .garden-flower-slot {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding-bottom: 4px;
 }
 .garden-flower-img {
-  width: 100%; max-width: 56px; height: 80px; object-fit: contain; display: block;
+  width: 100%; max-width: 48px; height: 60px; object-fit: contain; display: block;
 }
-.garden-flower-name { display: none; }
-.garden-flower-stars { display: none; }
-.garden-labels-bar {
-  background: var(--paper); border-radius: 16px;
-  padding: 8px 4px 10px; margin-bottom: 12px;
-  box-shadow: 0 4px 10px var(--shadow);
-  display: flex; justify-content: space-around;
+.garden-flower-name {
+  font-size: 8px; color: rgba(255,255,255,0.92); text-align: center;
+  line-height: 1.2; text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  font-weight: 500;
 }
-.garden-label-slot {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+.garden-flower-stars {
+  font-size: 8px; font-weight: 700; line-height: 1; text-align: center;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
-.garden-label-name {
-  font-size: 8px; color: var(--text-light); text-align: center; line-height: 1.2;
-}
-.garden-label-stars {
-  font-size: 9px; font-weight: 700; color: var(--text-mid); line-height: 1;
-}
+.garden-labels-bar { display: none; }
+.garden-label-slot { display: none; }
+.garden-label-name { display: none; }
+.garden-label-stars { display: none; }
 .garden-legend { display: none; }
 .g-leg { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-mid); }
 .g-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -1663,24 +1660,18 @@ function drawGarden() {
     const cnt = countMap[emo];
     const stage = getGardenStage(cnt);
     const imgPath = getGardenImgPath(emo, stage);
-    const starsLabel = cnt > 0 ? `<div class="garden-flower-stars">${cnt > 99 ? '99+' : cnt}回</div>` : '<div class="garden-flower-stars" style="opacity:0">0</div>';
+    const emoColor = (EMO[emo] || {}).c || '#fff';
+    const starsStyle = cnt > 0 ? `color:${emoColor}` : 'color:rgba(255,255,255,0.4)';
+    const starsText = cnt > 0 ? (cnt > 99 ? '99+' : cnt) + '回' : '—';
     return `<div class="garden-flower-slot">
       <img class="garden-flower-img" src="${imgPath}" alt="${emo}" loading="lazy">
       <div class="garden-flower-name">${emo}</div>
-      ${starsLabel}
+      <div class="garden-flower-stars" style="${starsStyle}">${starsText}</div>
     </div>`;
   }).join('');
 
   const labelsBar = document.getElementById('garden-labels-bar');
-  if (labelsBar) {
-    labelsBar.innerHTML = Object.keys(EMO).map(emo => {
-      const cnt = countMap[emo];
-      return `<div class="garden-label-slot">
-        <div class="garden-label-name">${emo}</div>
-        <div class="garden-label-stars" style="color:${cnt > 0 ? EMO[emo].c : 'var(--border)'}">${cnt > 0 ? (cnt > 99 ? '99+' : cnt) + '回' : '—'}</div>
-      </div>`;
-    }).join('');
-  }
+  if (labelsBar) labelsBar.innerHTML = '';
 }
 
 /* ────────── ハンバーガーメニュー ────────── */
