@@ -384,7 +384,7 @@ textarea::placeholder { color: #c8baaa; }
 /* ── Garden ── */
 .garden-card {
   background: var(--paper); border-radius: 20px; padding: 14px 14px 10px;
-  box-shadow: 0 2px 12px var(--shadow); margin-bottom: 0;
+  box-shadow: 0 2px 12px var(--shadow); margin-bottom: 12px;
 }
 .garden-header {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
@@ -405,35 +405,30 @@ textarea::placeholder { color: #c8baaa; }
   overflow: hidden;
   border-radius: 0 0 12px 12px;
 }
-/* 上段：花画像エリア（グラデーション背景） */
+/* 新レイアウト：花→文字→花→文字（5列×4行グリッド、グラデーション背景） */
 .garden-flowers-top {
   width: 100%;
   background: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(2, auto);
-  padding: 10px 4px 8px; gap: 4px 4px;
+  /* 行1=花A、行2=ラベルA、行3=花B、行4=ラベルB */
+  grid-template-rows: auto auto auto auto;
+  padding: 10px 4px 10px; gap: 0 4px;
 }
-/* 下段：ラベルエリア（白っぽい帯） */
-.garden-labels-bottom {
-  width: 100%;
-  background: rgba(255,255,255,0.82);
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  grid-template-rows: repeat(2, auto);
-  padding: 4px 4px 6px; gap: 2px 4px;
-  border-top: 1px solid rgba(0,0,0,0.06);
-}
+/* 花スロット（行1・行3） */
 .garden-flower-slot {
   display: flex; flex-direction: column; align-items: center;
+  padding-bottom: 2px;
 }
 .garden-flower-img {
-  width: 100%; max-width: 48px; height: 60px; object-fit: contain; display: block;
+  width: 100%; max-width: 56px; height: 76px; object-fit: contain; display: block;
 }
-/* 下段ラベルスロット */
+/* ラベルスロット（行2） */
 .garden-label-slot {
   display: flex; flex-direction: column; align-items: center; gap: 1px;
-  padding: 2px 0;
+  background: rgba(255,255,255,0.82);
+  padding: 3px 2px 4px;
+  border-top: 1px solid rgba(0,0,0,0.06);
 }
 .garden-label-name {
   font-size: 10px; color: #5a4f45; text-align: center;
@@ -442,6 +437,8 @@ textarea::placeholder { color: #c8baaa; }
 .garden-label-stars {
   font-size: 11px; font-weight: 700; line-height: 1; text-align: center;
 }
+/* 下段エリアは非表示（統合済み） */
+.garden-labels-bottom { display: none; }
 /* 旧クラス（非表示） */
 .garden-flowers { display: none; }
 .garden-flower-name { display: none; }
@@ -668,7 +665,7 @@ textarea::placeholder { color: #c8baaa; }
 
   <!-- STATS -->
   <div class="screen" id="s-stats">
-    <!-- Garden -->
+    <!-- Garden カード1（嬉しい〜不安） -->
     <div class="garden-card">
       <div class="garden-header">
         <div class="garden-title">🌱 <span id="garden-month-label">〇月</span>の庭</div>
@@ -678,12 +675,18 @@ textarea::placeholder { color: #c8baaa; }
         </div>
       </div>
       <div class="garden-wrap">
-        <div class="garden-bg" id="garden-bg">
-          <div class="garden-flowers-top" id="garden-flowers-top"></div>
-          <div class="garden-labels-bottom" id="garden-labels-bottom"></div>
+        <div class="garden-bg">
+          <div class="garden-flowers-top" id="garden-flowers-top-1"></div>
         </div>
       </div>
-      <div class="garden-legend" id="garden-legend"></div>
+    </div>
+    <!-- Garden カード2（楽しい〜その他） -->
+    <div class="garden-card">
+      <div class="garden-wrap">
+        <div class="garden-bg">
+          <div class="garden-flowers-top" id="garden-flowers-top-2"></div>
+        </div>
+      </div>
     </div>
     <div class="garden-labels-bar" id="garden-labels-bar"></div>
     <div class="sc">
@@ -1670,24 +1673,21 @@ function drawGarden() {
     }
   });
 
-  const topContainer = document.getElementById('garden-flowers-top');
-  const bottomContainer = document.getElementById('garden-labels-bottom');
-  if (!topContainer || !bottomContainer) return;
+  const container1 = document.getElementById('garden-flowers-top-1');
+  const container2 = document.getElementById('garden-flowers-top-2');
+  if (!container1 || !container2) return;
 
   const emoKeys = Object.keys(EMO);
+  const firstHalf  = emoKeys.slice(0, 5);
+  const secondHalf = emoKeys.slice(5, 10);
 
-  // 上段：花画像のみ
-  topContainer.innerHTML = emoKeys.map(emo => {
+  function makeFlowerSlot(emo) {
     const cnt = countMap[emo];
     const stage = getGardenStage(cnt);
     const imgPath = getGardenImgPath(emo, stage);
-    return `<div class="garden-flower-slot">
-      <img class="garden-flower-img" src="${imgPath}" alt="${emo}" loading="lazy">
-    </div>`;
-  }).join('');
-
-  // 下段：感情名＋回数（白背景帯）
-  bottomContainer.innerHTML = emoKeys.map(emo => {
+    return `<div class="garden-flower-slot"><img class="garden-flower-img" src="${imgPath}" alt="${emo}" loading="lazy"></div>`;
+  }
+  function makeLabelSlot(emo) {
     const cnt = countMap[emo];
     const emoColor = (EMO[emo] || {}).c || '#aaa';
     const starsStyle = cnt > 0 ? `color:${emoColor}` : 'color:rgba(0,0,0,0.25)';
@@ -1696,7 +1696,17 @@ function drawGarden() {
       <div class="garden-label-name">${emo}</div>
       <div class="garden-label-stars" style="${starsStyle}">${starsText}</div>
     </div>`;
-  }).join('');
+  }
+
+  // カード1：前半5感情（花→ラベル）
+  container1.innerHTML =
+    firstHalf.map(makeFlowerSlot).join('') +
+    firstHalf.map(makeLabelSlot).join('');
+
+  // カード2：後半5感情（花→ラベル）
+  container2.innerHTML =
+    secondHalf.map(makeFlowerSlot).join('') +
+    secondHalf.map(makeLabelSlot).join('');
 
   const labelsBar = document.getElementById('garden-labels-bar');
   if (labelsBar) labelsBar.innerHTML = '';
