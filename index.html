@@ -401,35 +401,51 @@ textarea::placeholder { color: #c8baaa; }
 .garden-wrap { width: 100%; overflow: hidden; border-radius: 12px; }
 .garden-bg {
   width: 100%;
-  background: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
   position: relative;
+  overflow: hidden;
+  border-radius: 0 0 12px 12px;
 }
-.garden-flowers {
-  width: 100%; display: grid;
+/* 上段：花画像エリア（グラデーション背景） */
+.garden-flowers-top {
+  width: 100%;
+  background: linear-gradient(to top, #7bc67e 0%, #a8d8a8 18%, #c8e6c9 32%, #b3d9f0 55%, #87ceeb 100%);
+  display: grid;
   grid-template-columns: repeat(5, 1fr);
   grid-template-rows: repeat(2, auto);
-  padding: 8px 4px 6px; gap: 2px 4px;
+  padding: 10px 4px 8px; gap: 4px 4px;
+}
+/* 下段：ラベルエリア（白っぽい帯） */
+.garden-labels-bottom {
+  width: 100%;
+  background: rgba(255,255,255,0.82);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(2, auto);
+  padding: 4px 4px 6px; gap: 2px 4px;
+  border-top: 1px solid rgba(0,0,0,0.06);
 }
 .garden-flower-slot {
-  display: flex; flex-direction: column; align-items: center; gap: 1px;
-  padding-bottom: 4px;
+  display: flex; flex-direction: column; align-items: center;
 }
 .garden-flower-img {
   width: 100%; max-width: 48px; height: 60px; object-fit: contain; display: block;
 }
-.garden-flower-name {
-  font-size: 10px; color: rgba(255,255,255,0.92); text-align: center;
-  line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,0.12);
-  font-weight: 500;
+/* 下段ラベルスロット */
+.garden-label-slot {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 2px 0;
 }
-.garden-flower-stars {
-  font-size: 10px; font-weight: 700; line-height: 1; text-align: center;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+.garden-label-name {
+  font-size: 10px; color: #5a4f45; text-align: center;
+  line-height: 1.2; font-weight: 500;
 }
-.garden-labels-bar { display: none; }
-.garden-label-slot { display: none; }
-.garden-label-name { display: none; }
-.garden-label-stars { display: none; }
+.garden-label-stars {
+  font-size: 11px; font-weight: 700; line-height: 1; text-align: center;
+}
+/* 旧クラス（非表示） */
+.garden-flowers { display: none; }
+.garden-flower-name { display: none; }
+.garden-flower-stars { display: none; }
 .garden-legend { display: none; }
 .g-leg { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text-mid); }
 .g-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -663,7 +679,8 @@ textarea::placeholder { color: #c8baaa; }
       </div>
       <div class="garden-wrap">
         <div class="garden-bg" id="garden-bg">
-          <div class="garden-flowers" id="garden-flowers"></div>
+          <div class="garden-flowers-top" id="garden-flowers-top"></div>
+          <div class="garden-labels-bottom" id="garden-labels-bottom"></div>
         </div>
       </div>
       <div class="garden-legend" id="garden-legend"></div>
@@ -1653,20 +1670,31 @@ function drawGarden() {
     }
   });
 
-  const container = document.getElementById('garden-flowers');
-  if (!container) return;
+  const topContainer = document.getElementById('garden-flowers-top');
+  const bottomContainer = document.getElementById('garden-labels-bottom');
+  if (!topContainer || !bottomContainer) return;
 
-  container.innerHTML = Object.keys(EMO).map(emo => {
+  const emoKeys = Object.keys(EMO);
+
+  // 上段：花画像のみ
+  topContainer.innerHTML = emoKeys.map(emo => {
     const cnt = countMap[emo];
     const stage = getGardenStage(cnt);
     const imgPath = getGardenImgPath(emo, stage);
-    const emoColor = (EMO[emo] || {}).c || '#fff';
-    const starsStyle = cnt > 0 ? `color:${emoColor}` : 'color:rgba(255,255,255,0.4)';
-    const starsText = cnt > 0 ? (cnt > 99 ? '99+' : cnt) + '回' : '—';
     return `<div class="garden-flower-slot">
       <img class="garden-flower-img" src="${imgPath}" alt="${emo}" loading="lazy">
-      <div class="garden-flower-name">${emo}</div>
-      <div class="garden-flower-stars" style="${starsStyle}">${starsText}</div>
+    </div>`;
+  }).join('');
+
+  // 下段：感情名＋回数（白背景帯）
+  bottomContainer.innerHTML = emoKeys.map(emo => {
+    const cnt = countMap[emo];
+    const emoColor = (EMO[emo] || {}).c || '#aaa';
+    const starsStyle = cnt > 0 ? `color:${emoColor}` : 'color:rgba(0,0,0,0.25)';
+    const starsText = cnt > 0 ? (cnt > 99 ? '99+' : cnt) + '回' : '—';
+    return `<div class="garden-label-slot">
+      <div class="garden-label-name">${emo}</div>
+      <div class="garden-label-stars" style="${starsStyle}">${starsText}</div>
     </div>`;
   }).join('');
 
