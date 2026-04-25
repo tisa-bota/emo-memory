@@ -1815,9 +1815,15 @@ function drawGarden() {
     const imgPath = getGardenImgPath(emo, stage);
     return `<div class="garden-flower-slot"><img class="garden-flower-img" src="${imgPath}" alt="${emo}" loading="lazy"></div>`;
   }
+  // 明るすぎる色を半透明ラベル帯上で視認しやすい色に補正
+  const LABEL_COLOR_OVERRIDE = {
+    '嬉しい': '#c89010', // #f0b830 → 暗めのゴールド
+    '願い':   '#a89020', // #e8d870 → 暗めのオリーブゴールド
+  };
   function makeLabelSlot(emo) {
     const cnt = countMap[emo];
-    const emoColor = (EMO[emo] || {}).c || '#aaa';
+    const rawColor = (EMO[emo] || {}).c || '#aaa';
+    const emoColor = LABEL_COLOR_OVERRIDE[emo] || rawColor;
     const starsStyle = cnt > 0 ? `color:${emoColor}` : 'color:rgba(0,0,0,0.25)';
     const starsText = cnt > 0 ? (cnt > 99 ? '99+' : cnt) + '回' : '—';
     return `<div class="garden-label-slot">
