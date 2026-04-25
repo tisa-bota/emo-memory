@@ -362,7 +362,7 @@ textarea::placeholder { color: #c8baaa; }
 .list-tab-row { display: flex; gap: 0; margin: 8px 16px 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
 .list-tab-btn { flex: 1; padding: 8px 0; font-size: 13px; font-family: inherit; border: none; background: var(--surface); color: var(--text-light); cursor: pointer; transition: background 0.15s, color 0.15s; }
 .list-tab-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
-.idea-card { background: var(--surface); border-radius: 14px; border-left: 4px solid #aaa; padding: 10px 13px; margin-bottom: 9px; }
+.idea-card { background: rgba(255,255,255,0.92); border-radius: 14px; border-left: 4px solid #aaa; padding: 10px 13px; margin-bottom: 9px; }
 .idea-card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
 .idea-card-emo { font-size: 12px; font-weight: 600; }
 .idea-card-date { font-size: 11px; color: var(--text-light); margin-left: auto; }
@@ -723,11 +723,6 @@ textarea::placeholder { color: #c8baaa; }
       </div>
     </div>
     <div class="garden-labels-bar" id="garden-labels-bar"></div>
-    <!-- ⭐ お気に入りアイデア -->
-    <div class="garden-fav-section" id="garden-fav-section" style="display:none">
-      <div class="garden-fav-title" id="garden-fav-title">⭐ お気に入りアイデア</div>
-      <div class="garden-fav-list" id="garden-fav-list"></div>
-    </div>
     <div class="sc">
       <div class="sc-title">✦ 記録サマリー</div>
       <div class="kpis">
@@ -740,6 +735,11 @@ textarea::placeholder { color: #c8baaa; }
     <div class="sc">
       <div class="sc-title">🌿 過去7日間によく感じたこと</div>
       <div class="tags" id="recent-tags"></div>
+    </div>
+    <!-- ⭐ お気に入りアイデア -->
+    <div class="garden-fav-section" id="garden-fav-section" style="display:none">
+      <div class="garden-fav-title" id="garden-fav-title">⭐ お気に入りアイデア</div>
+      <div class="garden-fav-list" id="garden-fav-list"></div>
     </div>
   </div>
 
