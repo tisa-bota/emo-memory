@@ -359,6 +359,14 @@ textarea::placeholder { color: #c8baaa; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
 .idea-item { padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; line-height: 1.7; color: var(--text-mid); }
+.list-tab-row { display: flex; gap: 0; margin: 8px 16px 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+.list-tab-btn { flex: 1; padding: 8px 0; font-size: 13px; font-family: inherit; border: none; background: var(--surface); color: var(--text-light); cursor: pointer; transition: background 0.15s, color 0.15s; }
+.list-tab-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
+.idea-card { background: var(--surface); border-radius: 14px; border-left: 4px solid #aaa; padding: 10px 13px; margin-bottom: 9px; }
+.idea-card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.idea-card-emo { font-size: 12px; font-weight: 600; }
+.idea-card-date { font-size: 11px; color: var(--text-light); margin-left: auto; }
+.idea-card-text { font-size: 13px; color: var(--text-mid); line-height: 1.65; }
 
 .overlay {
   position: fixed; inset: 0; background: rgba(46,40,32,.45); backdrop-filter: blur(5px);
@@ -660,7 +668,13 @@ textarea::placeholder { color: #c8baaa; }
       <span id="djump-selected" class="djump-selected"></span>
       <button id="djump-clear" class="djump-clear" onclick="clearDateJump()" style="display:none">✕</button>
     </div>
+    <!-- List tab switch -->
+    <div class="list-tab-row">
+      <button class="list-tab-btn active" id="tab-memory" onclick="switchListTab('memory')">📖 メモリー</button>
+      <button class="list-tab-btn" id="tab-idea" onclick="switchListTab('idea')">💡 アイデアの種</button>
+    </div>
     <div id="elist"></div>
+    <div id="idea-elist" style="display:none;padding:0 16px"></div>
   </div>
 
   <!-- STATS -->
@@ -701,10 +715,6 @@ textarea::placeholder { color: #c8baaa; }
     <div class="sc">
       <div class="sc-title">🌿 過去7日間によく感じたこと</div>
       <div class="tags" id="recent-tags"></div>
-    </div>
-    <div class="sc">
-      <div class="sc-title">💡 アイデアの種まとめ</div>
-      <div id="idea-list"></div>
     </div>
   </div>
 
@@ -1080,6 +1090,7 @@ function initEmoButtons() {
 let entries = JSON.parse(localStorage.getItem('kn2-entries') || '[]');
 let selEmo = null, selStar = 3, photoUrl = null, curFilter = 'all';
 let dateJumpDate = null, searchQuery = '';
+let curListTab = 'memory'; // 'memory' | 'idea'
 let flowerStats = JSON.parse(localStorage.getItem('kn2-flowerStats') || '{}');
 let _renderGen = 0;  // renderList() の競合防止用世代番号
 
@@ -1091,7 +1102,12 @@ function onDateJump(input) {
   document.getElementById('djump-selected').textContent =
     `${d.getMonth()+1}/${d.getDate()}（${DAYS[d.getDay()]}）`;
   document.getElementById('djump-clear').style.display = 'flex';
-  renderList();
+  refreshCurrentTab();
+}
+
+function refreshCurrentTab() {
+  if (curListTab === "idea") { renderList(); renderIdeaList(); }
+  else renderList();
 }
 
 function clearDateJump() {
@@ -1099,7 +1115,7 @@ function clearDateJump() {
   document.getElementById('djump-input').value = '';
   document.getElementById('djump-selected').textContent = '';
   document.getElementById('djump-clear').style.display = 'none';
-  renderList();
+  refreshCurrentTab();
 }
 
 function init() {
@@ -1262,7 +1278,7 @@ function setFilter(btn) {
     b.classList.toggle('on', b.dataset.f === f);
   });
   updateFlowerPanel();
-  renderList();
+  refreshCurrentTab();
 }
 
 let _bgTestImg = null;
@@ -1383,6 +1399,44 @@ async function renderList() {
   }).join('');
 }
 
+
+function switchListTab(tab) {
+  curListTab = tab;
+  document.getElementById("tab-memory").classList.toggle("active", tab === "memory");
+  document.getElementById("tab-idea").classList.toggle("active", tab === "idea");
+  document.getElementById("elist").style.display = tab === "memory" ? "" : "none";
+  document.getElementById("idea-elist").style.display = tab === "idea" ? "" : "none";
+  if (tab === "idea") renderIdeaList();
+}
+
+function renderIdeaList() {
+  const container = document.getElementById('idea-elist');
+  let filtered = [...entries].filter(e => e.idea && e.idea.trim());
+  if (curFilter !== 'all') filtered = filtered.filter(e => e.emo === curFilter);
+  if (dateJumpDate) filtered = filtered.filter(e => e.date.slice(0,10) === dateJumpDate);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(e => e.idea.toLowerCase().includes(q));
+  }
+  filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (!filtered.length) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--text-light);text-align:center;padding:32px 0">💡 アイデアの種を書くとここに集まります 🌱</p>';
+    return;
+  }
+  container.innerHTML = filtered.map(e => {
+    const emoData = EMO[e.emo] || { c: '#aaa', bg: '#f5f5f5' };
+    const d = new Date(e.date);
+    const ds = (d.getMonth()+1) + '/' + d.getDate() + ' ' + '日月火水木金土'[d.getDay()];
+    return `<div class="idea-card" style="border-left-color:${emoData.c}" onclick="openModal(${e.id})">
+      <div class="idea-card-top">
+        <span class="sym-dot" style="width:14px;height:14px">${wcDotSVG(emoData.c,14)}</span>
+        <span class="idea-card-emo" style="color:${emoData.c}">${e.emo}</span>
+        <span class="idea-card-date">${ds}</span>
+      </div>
+      <div class="idea-card-text">${e.idea}</div>
+    </div>`;
+  }).join('');
+}
 let modalEntryId = null;
 let editEmo = null, editStar = 3, editPhotoUrl = null;
 
@@ -1562,13 +1616,13 @@ async function saveEdit() {
 function onSearch(input) {
   searchQuery = input.value.trim();
   document.getElementById('search-clear').classList.toggle('on', searchQuery.length > 0);
-  renderList();
+  refreshCurrentTab();
 }
 function clearSearch() {
   searchQuery = '';
   document.getElementById('search-input').value = '';
   document.getElementById('search-clear').classList.remove('on');
-  renderList();
+  refreshCurrentTab();
 }
 
 function calcStreak() {
@@ -1619,10 +1673,7 @@ function renderStats() {
   document.getElementById('recent-tags').innerHTML = rtag.length
     ? rtag.map(([k, n]) => `<span class="tag" style="background:${EMO[k].bg};color:${EMO[k].c}"><span class="sym-dot" style="width:14px;height:14px;vertical-align:middle;margin-right:3px">${wcDotSVG(EMO[k].c,14)}</span>${k} × ${n}</span>`).join('')
     : '<span style="font-size:12px;color:var(--text-light)">まだ記録がありません</span>';
-  const ideas = entries.filter(e => e.idea).slice(0,6);
-  document.getElementById('idea-list').innerHTML = ideas.length
-    ? ideas.map(e => `<div class="idea-item"><span class="sym-dot" style="width:14px;height:14px;vertical-align:middle;margin-right:4px">${wcDotSVG((EMO[e.emo]||{c:'#aaa'}).c,14)}</span>${e.idea}</div>`).join('')
-    : '<p style="font-size:12px;color:var(--text-light)">「アイデアの種」を書くとここに集まります 🌱</p>';
+
 }
 
 function showToast(msg) {
