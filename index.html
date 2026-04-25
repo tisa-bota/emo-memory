@@ -367,6 +367,26 @@ textarea::placeholder { color: #c8baaa; }
 .idea-card-emo { font-size: 12px; font-weight: 600; }
 .idea-card-date { font-size: 11px; color: var(--text-light); margin-left: auto; }
 .idea-card-text { font-size: 13px; color: var(--text-mid); line-height: 1.65; }
+.idea-fav-btn {
+  background: none; border: none; cursor: pointer; font-size: 16px; line-height: 1;
+  padding: 2px 4px; border-radius: 8px; transition: transform .15s; flex-shrink: 0;
+}
+.idea-fav-btn:active { transform: scale(1.3); }
+/* ガーデン：お気に入りセクション */
+.garden-fav-section {
+  background: var(--paper); border-radius: 20px; padding: 14px 14px 12px;
+  box-shadow: 0 2px 12px var(--shadow); margin-bottom: 12px;
+}
+.garden-fav-title { font-size: 11px; color: var(--text-light); letter-spacing: 0.1em; margin-bottom: 10px; }
+.garden-fav-list { display: flex; flex-direction: column; gap: 8px; }
+.garden-fav-card {
+  background: var(--bg); border-radius: 12px; border-left: 4px solid #aaa;
+  padding: 9px 12px; cursor: pointer;
+}
+.garden-fav-card-top { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.garden-fav-card-emo { font-size: 11px; font-weight: 600; }
+.garden-fav-card-date { font-size: 10px; color: var(--text-light); margin-left: auto; }
+.garden-fav-card-text { font-size: 13px; color: var(--text-mid); line-height: 1.6; }
 
 .overlay {
   position: fixed; inset: 0; background: rgba(46,40,32,.45); backdrop-filter: blur(5px);
@@ -703,6 +723,11 @@ textarea::placeholder { color: #c8baaa; }
       </div>
     </div>
     <div class="garden-labels-bar" id="garden-labels-bar"></div>
+    <!-- ⭐ お気に入りアイデア -->
+    <div class="garden-fav-section" id="garden-fav-section" style="display:none">
+      <div class="garden-fav-title" id="garden-fav-title">⭐ お気に入りアイデア</div>
+      <div class="garden-fav-list" id="garden-fav-list"></div>
+    </div>
     <div class="sc">
       <div class="sc-title">✦ 記録サマリー</div>
       <div class="kpis">
@@ -1409,6 +1434,18 @@ function switchListTab(tab) {
   if (tab === "idea") renderIdeaList();
 }
 
+function toggleIdeaFav(id, event) {
+  event.stopPropagation();
+  const idx = entries.findIndex(x => x.id === id);
+  if (idx === -1) return;
+  entries[idx].ideaFav = !entries[idx].ideaFav;
+  localStorage.setItem('kn2-entries', JSON.stringify(entries));
+  saveToIDB(entries);
+  renderIdeaList();
+  renderGardenFav();
+  showToast(entries[idx].ideaFav ? '⭐ お気に入りに追加！' : '★ お気に入りを解除');
+}
+
 function renderIdeaList() {
   const container = document.getElementById('idea-elist');
   let filtered = [...entries].filter(e => e.idea && e.idea.trim());
@@ -1427,13 +1464,48 @@ function renderIdeaList() {
     const emoData = EMO[e.emo] || { c: '#aaa', bg: '#f5f5f5' };
     const d = new Date(e.date);
     const ds = (d.getMonth()+1) + '/' + d.getDate() + ' ' + '日月火水木金土'[d.getDay()];
+    const favIcon = e.ideaFav ? '⭐' : '🌱';
     return `<div class="idea-card" style="border-left-color:${emoData.c}" onclick="openModal(${e.id})">
       <div class="idea-card-top">
         <span class="sym-dot" style="width:14px;height:14px">${wcDotSVG(emoData.c,14)}</span>
         <span class="idea-card-emo" style="color:${emoData.c}">${e.emo}</span>
         <span class="idea-card-date">${ds}</span>
+        <button class="idea-fav-btn" onclick="toggleIdeaFav(${e.id},event)" title="お気に入り">${favIcon}</button>
       </div>
       <div class="idea-card-text">${e.idea}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderGardenFav() {
+  const section = document.getElementById('garden-fav-section');
+  const list = document.getElementById('garden-fav-list');
+  const titleEl = document.getElementById('garden-fav-title');
+  if (!section || !list) return;
+  const { year, month } = getGardenMonth();
+  const favs = entries.filter(e => {
+    if (!e.idea || !e.idea.trim() || !e.ideaFav) return false;
+    const d = new Date(e.date);
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
+  favs.sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (titleEl) titleEl.textContent = `⭐ ${year}年${month+1}月のお気に入りアイデア`;
+  if (!favs.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  list.innerHTML = favs.map(e => {
+    const emoData = EMO[e.emo] || { c: '#aaa', bg: '#f5f5f5' };
+    const d = new Date(e.date);
+    const ds = (d.getMonth()+1) + '/' + d.getDate() + ' ' + '日月火水木金土'[d.getDay()];
+    return `<div class="garden-fav-card" style="border-left-color:${emoData.c}" onclick="openModal(${e.id})">
+      <div class="garden-fav-card-top">
+        <span class="sym-dot" style="width:12px;height:12px">${wcDotSVG(emoData.c,12)}</span>
+        <span class="garden-fav-card-emo" style="color:${emoData.c}">${e.emo}</span>
+        <span class="garden-fav-card-date">${ds}</span>
+      </div>
+      <div class="garden-fav-card-text">${e.idea}</div>
     </div>`;
   }).join('');
 }
@@ -1655,6 +1727,7 @@ function calcStreak() {
 
 function renderStats() {
   drawGarden();
+  renderGardenFav();
   const total = entries.length;
   document.getElementById('st-total').textContent = total;
   const now = new Date(), wa = new Date(now - 7*24*3600*1000);
@@ -1689,6 +1762,7 @@ function shiftGardenMonth(delta) {
   gardenMonthOffset += delta;
   if (gardenMonthOffset > 0) gardenMonthOffset = 0;
   drawGarden();
+  renderGardenFav();
 }
 
 function getGardenMonth() {
